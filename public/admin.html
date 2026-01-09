@@ -13,15 +13,18 @@
     <div class="flex items-end justify-between mb-5">
       <div>
         <h1 class="text-3xl font-extrabold tracking-tight">Control Desk</h1>
-        <p class="text-zinc-400">Run events, manage entries, keep the board clean.</p>
+        <p class="text-zinc-400">Events, pinned fullscreen, clean leaderboard, full attempts history.</p>
       </div>
-      <a href="/" class="text-sm underline text-zinc-300 hover:text-white">View Display →</a>
+      <div class="flex gap-3">
+        <a href="/" class="text-sm underline text-zinc-300 hover:text-white">Display →</a>
+        <a href="/fullscreen" class="text-sm underline text-zinc-300 hover:text-white">Fullscreen →</a>
+      </div>
     </div>
 
     <div id="toast" class="hidden mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm"></div>
 
     <div class="grid grid-cols-12 gap-4">
-      <!-- Left: security + event + modes -->
+      <!-- Left -->
       <div class="col-span-12 lg:col-span-4 space-y-4">
         <!-- Security -->
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
@@ -38,65 +41,99 @@
               Save
             </button>
           </div>
-          <p class="text-xs text-zinc-500 mt-2">If actions get denied, your PIN is wrong.</p>
         </div>
 
-        <!-- Event -->
+        <!-- Events -->
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
           <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-lg">Event</h2>
+            <h2 class="font-semibold text-lg">Events</h2>
             <span class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
-              Current: <span id="currentEvent">—</span>
+              LIVE: <span id="liveEventName">—</span>
             </span>
           </div>
 
+          <div class="grid grid-cols-3 gap-2">
+            <input id="newEventName" placeholder="New event name"
+              class="col-span-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            <button id="createEvent" class="rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 px-3 py-2">
+              Create
+            </button>
+          </div>
+
           <div>
-            <label class="text-xs text-zinc-400">Event name</label>
-            <input id="eventName" placeholder="e.g. Open Day Time Trial"
-              class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            <label class="text-xs text-zinc-400">Set LIVE event</label>
+            <div class="mt-1 flex gap-2">
+              <select id="liveEventSelect" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
+              <button id="setLive" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Set</button>
+            </div>
           </div>
 
           <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
             <div>
               <p class="font-semibold">Best per driver</p>
-              <p class="text-xs text-zinc-500">Display mode (recommended).</p>
+              <p class="text-xs text-zinc-500">Recommended for clean boards.</p>
             </div>
-            <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              ON
-            </button>
+            <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
           </div>
 
-          <button id="applyEvent" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+          <button id="applySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
             Apply Settings
           </button>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="clearEvent" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
-              Clear Event
-            </button>
-            <button id="clearAll" class="px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-              Clear All
-            </button>
-          </div>
-
-          <div class="pt-2 border-t border-zinc-800">
-            <p class="text-xs text-zinc-400 mb-2">Entries per event</p>
-            <div id="eventCounts" class="space-y-1 text-sm text-zinc-300"></div>
-          </div>
         </div>
 
-        <!-- Modes -->
+        <!-- Fullscreen pin -->
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Show mode</h2>
+          <h2 class="font-semibold text-lg">Fullscreen (Pinned)</h2>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Follow LIVE event</p>
+              <p class="text-xs text-zinc-500">If ON, fullscreen always shows the live event.</p>
+            </div>
+            <button id="followLiveToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
+          </div>
+
+          <div>
+            <label class="text-xs text-zinc-400">Fullscreen event</label>
+            <select id="fsEventSelect" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
+          </div>
+
+          <div>
+            <label class="text-xs text-zinc-400">Fullscreen game view</label>
+            <select id="fsGame" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+              <option value="">Mixed</option>
+              <option value="Assetto Corsa">Assetto Corsa</option>
+              <option value="F1 25">F1 25</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Allow TV cycle override</p>
+              <p class="text-xs text-zinc-500">Only if you want auto-rotation.</p>
+            </div>
+            <button id="tvOverrideToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+          </div>
+
+          <button id="applyFullscreen" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+            Apply Fullscreen Pin
+          </button>
+
+          <button id="resetPinnedEvent" class="w-full px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
+            Reset Pinned Event Board (scores + attempts)
+          </button>
+        </div>
+
+        <!-- Tools -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+          <h2 class="font-semibold text-lg">Tools</h2>
 
           <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
             <div>
               <p class="font-semibold">Demo mode</p>
-              <p class="text-xs text-zinc-500">Auto-fill with sample data.</p>
+              <p class="text-xs text-zinc-500">Auto-add demo attempts into LIVE event.</p>
             </div>
-            <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">
-              Off
-            </button>
+            <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
           </div>
 
           <div class="grid grid-cols-2 gap-2">
@@ -112,14 +149,16 @@
             </div>
           </div>
 
+          <button id="clearDemo" class="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
+            Clear Demo Data
+          </button>
+
           <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
             <div>
-              <p class="font-semibold">TV auto-cycle</p>
-              <p class="text-xs text-zinc-500">Mixed → Assetto → F1.</p>
+              <p class="font-semibold">TV cycle</p>
+              <p class="text-xs text-zinc-500">Broadcast game rotation signal.</p>
             </div>
-            <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">
-              Off
-            </button>
+            <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
           </div>
 
           <div>
@@ -127,13 +166,55 @@
             <input id="tvRate" value="15000"
               class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
           </div>
+
+          <!-- CLEANUP -->
+          <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="font-semibold">Cleanup</p>
+                <p class="text-xs text-zinc-500">Keeps attempts.json from growing forever.</p>
+              </div>
+              <span class="text-xs text-zinc-400" id="cleanupHint">—</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-zinc-400">Older than (days)</label>
+                <input id="cleanupDays" value="90"
+                  class="mt-1 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+              <div class="flex items-end">
+                <button id="cleanupRun" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+                  Run Cleanup
+                </button>
+              </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-sm text-zinc-300">
+              <input id="cleanupAlsoScores" type="checkbox" class="accent-white" />
+              Also delete leaderboard rows older than N days
+            </label>
+
+            <p class="text-xs text-zinc-500">
+              Default only removes <b>attempt history</b>. If you tick the box, it can also remove old leaderboard rows.
+            </p>
+          </div>
+
+          <!-- Danger: clear all -->
+          <button id="clearAll" class="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-red-700/60 text-red-200 hover:bg-red-950/40">
+            Clear EVERYTHING (nuke)
+          </button>
         </div>
       </div>
 
       <!-- Middle: add lap -->
       <div class="col-span-12 lg:col-span-4">
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 class="font-semibold text-lg mb-3">Add lap</h2>
+          <h2 class="font-semibold text-lg mb-3">Add lap (to LIVE event)</h2>
+
+          <div class="text-xs text-zinc-400 mb-3">
+            LIVE event: <span id="liveEventName2" class="font-semibold text-zinc-200">—</span>
+          </div>
 
           <form id="scoreForm" class="space-y-3">
             <div class="grid grid-cols-2 gap-2">
@@ -206,16 +287,15 @@
         </div>
       </div>
 
-      <!-- Right: entry list -->
+      <!-- Right: leaderboard rows for pinned event -->
       <div class="col-span-12 lg:col-span-4">
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-lg">Entries (current event)</h2>
-            <input id="search" placeholder="Search name/track…"
-              class="w-48 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+            <h2 class="font-semibold text-lg">Pinned Event Rows (Leaderboard)</h2>
+            <span class="text-xs text-zinc-400" id="pinnedSummary">—</span>
           </div>
 
-          <div id="entryList" class="space-y-2 max-h-[680px] overflow-auto pr-1"></div>
+          <div id="entryList" class="space-y-2 max-h-[720px] overflow-auto pr-1"></div>
         </div>
       </div>
     </div>
@@ -224,7 +304,6 @@
 <script>
   const socket = io();
 
-  // ---- toast ----
   const toast = document.getElementById("toast");
   function showToast(msg, ok=true) {
     toast.textContent = msg;
@@ -235,13 +314,12 @@
     setTimeout(() => toast.classList.add("hidden"), 3500);
   }
 
-  // ---- PIN ----
+  // PIN
   const PIN_KEY = "leaderboard_admin_pin";
   const pinInput = document.getElementById("pin");
   const savePin = document.getElementById("savePin");
   const pinStatus = document.getElementById("pinStatus");
   pinInput.value = localStorage.getItem(PIN_KEY) || "";
-
   function getPin() { return (pinInput.value || "").trim(); }
   function pingPin() { socket.emit("adminPing", { pin: getPin() }); }
 
@@ -258,58 +336,84 @@
       : "text-xs px-2 py-1 rounded-full border border-red-700/40 bg-red-500/10 text-red-200";
   });
 
-  // ---- settings ----
-  let settings = { eventName: "Open Practice", bestPerDriver: true, demoEnabled:false, demoRateMs:4000, tvCycleEnabled:false, tvCycleRateMs:15000 };
+  // Settings + events
+  let settings = null;
+  let scores = [];
 
-  const eventName = document.getElementById("eventName");
-  const currentEvent = document.getElementById("currentEvent");
+  const liveEventName = document.getElementById("liveEventName");
+  const liveEventName2 = document.getElementById("liveEventName2");
+  const newEventName = document.getElementById("newEventName");
+  const createEventBtn = document.getElementById("createEvent");
+  const liveEventSelect = document.getElementById("liveEventSelect");
+  const setLiveBtn = document.getElementById("setLive");
+
   const bestToggle = document.getElementById("bestToggle");
-  const applyEvent = document.getElementById("applyEvent");
-  const clearEvent = document.getElementById("clearEvent");
+  const applySettings = document.getElementById("applySettings");
+
+  const followLiveToggle = document.getElementById("followLiveToggle");
+  const fsEventSelect = document.getElementById("fsEventSelect");
+  const fsGame = document.getElementById("fsGame");
+  const tvOverrideToggle = document.getElementById("tvOverrideToggle");
+  const applyFullscreen = document.getElementById("applyFullscreen");
+  const resetPinnedEvent = document.getElementById("resetPinnedEvent");
+
+  const demoToggle = document.getElementById("demoToggle");
+  const demoSeed = document.getElementById("demoSeed");
+  const demoRate = document.getElementById("demoRate");
+  const clearDemo = document.getElementById("clearDemo");
+
+  const tvToggle = document.getElementById("tvToggle");
+  const tvRate = document.getElementById("tvRate");
   const clearAll = document.getElementById("clearAll");
 
-  function refreshSettingsUI() {
-    eventName.value = settings.eventName || "Open Practice";
-    currentEvent.textContent = settings.eventName || "Open Practice";
+  // Cleanup UI
+  const cleanupHint = document.getElementById("cleanupHint");
+  const cleanupDays = document.getElementById("cleanupDays");
+  const cleanupAlsoScores = document.getElementById("cleanupAlsoScores");
+  const cleanupRun = document.getElementById("cleanupRun");
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function renderEventOptions() {
+    const evs = settings?.events || [];
+    const liveId = settings?.liveEventId;
+
+    liveEventSelect.innerHTML = evs.map(e => `
+      <option value="${escapeHtml(e.id)}" ${e.id === liveId ? "selected" : ""}>${escapeHtml(e.name)}</option>
+    `).join("");
+
+    fsEventSelect.innerHTML = evs.map(e => `
+      <option value="${escapeHtml(e.id)}" ${e.id === settings?.fullscreen?.eventId ? "selected" : ""}>${escapeHtml(e.name)}</option>
+    `).join("");
+  }
+
+  function refreshUI() {
+    if (!settings) return;
+
+    liveEventName.textContent = settings.liveEventName || "—";
+    liveEventName2.textContent = settings.liveEventName || "—";
 
     bestToggle.textContent = settings.bestPerDriver ? "ON" : "OFF";
     bestToggle.className = settings.bestPerDriver
       ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
       : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-  }
 
-  bestToggle.addEventListener("click", () => {
-    settings.bestPerDriver = !settings.bestPerDriver;
-    refreshSettingsUI();
-  });
+    followLiveToggle.textContent = settings.fullscreen?.followLiveEvent ? "ON" : "OFF";
+    followLiveToggle.className = settings.fullscreen?.followLiveEvent
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
 
-  applyEvent.addEventListener("click", () => {
-    socket.emit("adminUpdateSettings", {
-      pin: getPin(),
-      patch: { eventName: eventName.value, bestPerDriver: settings.bestPerDriver }
-    });
-  });
+    tvOverrideToggle.textContent = settings.fullscreen?.useTvCycle ? "On" : "Off";
+    tvOverrideToggle.className = settings.fullscreen?.useTvCycle
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
 
-  clearEvent.addEventListener("click", () => {
-    const ok = confirm(`Clear entries for event "${settings.eventName}"?`);
-    if (!ok) return;
-    socket.emit("adminClearEvent", { pin: getPin(), eventName: settings.eventName });
-  });
+    fsGame.value = settings.fullscreen?.game ?? "";
 
-  clearAll.addEventListener("click", () => {
-    const ok = confirm("Clear ALL entries (all events)?");
-    if (!ok) return;
-    socket.emit("adminClearAll", { pin: getPin() });
-  });
-
-  // ---- demo / tv ----
-  const demoToggle = document.getElementById("demoToggle");
-  const demoSeed = document.getElementById("demoSeed");
-  const demoRate = document.getElementById("demoRate");
-  const tvToggle = document.getElementById("tvToggle");
-  const tvRate = document.getElementById("tvRate");
-
-  function refreshModeButtons() {
     demoRate.value = settings.demoRateMs ?? 4000;
     demoToggle.textContent = settings.demoEnabled ? "On" : "Off";
     demoToggle.className = settings.demoEnabled
@@ -321,22 +425,108 @@
     tvToggle.className = settings.tvCycleEnabled
       ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
       : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+
+    cleanupHint.textContent = "Attempts cleanup";
+    renderEventOptions();
+    renderPinnedList();
   }
 
+  // Events actions
+  createEventBtn.addEventListener("click", () => {
+    const name = newEventName.value.trim();
+    if (!name) return showToast("Type an event name first.", false);
+    socket.emit("adminCreateEvent", { pin: getPin(), name });
+    newEventName.value = "";
+  });
+
+  setLiveBtn.addEventListener("click", () => {
+    socket.emit("adminSetLiveEvent", { pin: getPin(), eventId: liveEventSelect.value });
+  });
+
+  // Settings
+  bestToggle.addEventListener("click", () => {
+    settings.bestPerDriver = !settings.bestPerDriver;
+    refreshUI();
+  });
+
+  applySettings.addEventListener("click", () => {
+    socket.emit("adminUpdateSettings", { pin: getPin(), patch: { bestPerDriver: settings.bestPerDriver } });
+  });
+
+  // Fullscreen pin
+  followLiveToggle.addEventListener("click", () => {
+    settings.fullscreen.followLiveEvent = !settings.fullscreen.followLiveEvent;
+    refreshUI();
+  });
+
+  tvOverrideToggle.addEventListener("click", () => {
+    settings.fullscreen.useTvCycle = !settings.fullscreen.useTvCycle;
+    refreshUI();
+  });
+
+  applyFullscreen.addEventListener("click", () => {
+    socket.emit("adminSetFullscreen", {
+      pin: getPin(),
+      patch: {
+        followLiveEvent: settings.fullscreen.followLiveEvent,
+        useTvCycle: settings.fullscreen.useTvCycle,
+        eventId: fsEventSelect.value,
+        game: fsGame.value
+      }
+    });
+  });
+
+  resetPinnedEvent.addEventListener("click", () => {
+    const ok = confirm("Reset pinned event board?\nThis clears BOTH leaderboard rows and attempts for that event.");
+    if (!ok) return;
+    const eid = settings.fullscreen.followLiveEvent ? settings.liveEventId : fsEventSelect.value;
+    socket.emit("adminResetEventBoard", { pin: getPin(), eventId: eid });
+  });
+
+  // Demo
   demoToggle.addEventListener("click", () => {
     socket.emit("adminDemo", { pin: getPin(), enabled: !settings.demoEnabled, seed:false, rateMs: Number(demoRate.value || 4000) });
   });
-
   demoSeed.addEventListener("click", (e) => {
     e.preventDefault();
     socket.emit("adminDemo", { pin: getPin(), enabled: true, seed:true, rateMs: Number(demoRate.value || 4000) });
   });
+  clearDemo.addEventListener("click", () => {
+    const ok = confirm("Clear demo data?");
+    if (!ok) return;
+    socket.emit("adminClearDemo", { pin: getPin() });
+  });
 
+  // TV cycle
   tvToggle.addEventListener("click", () => {
     socket.emit("adminTvCycle", { pin: getPin(), enabled: !settings.tvCycleEnabled, rateMs: Number(tvRate.value || 15000) });
   });
 
-  // ---- add lap ----
+  // Cleanup
+  cleanupRun.addEventListener("click", (e) => {
+    e.preventDefault();
+    const days = Number(cleanupDays.value || 90);
+    if (!Number.isFinite(days) || days <= 0) return showToast("Cleanup days must be a positive number.", false);
+
+    const alsoScores = !!cleanupAlsoScores.checked;
+    const ok = confirm(
+      `Run cleanup?\n\nRemove attempts older than ${days} days.` +
+      (alsoScores ? `\nAlso remove leaderboard rows older than ${days} days.` : "") +
+      `\n\nThis is irreversible.`
+    );
+    if (!ok) return;
+
+    socket.emit("adminCleanup", { pin: getPin(), olderThanDays: days, alsoScores });
+  });
+
+  // Clear all
+  clearAll.addEventListener("click", () => {
+    const ok = confirm("NUKE EVERYTHING? scores + attempts.\nThis is irreversible.");
+    if (!ok) return;
+    socket.emit("adminClearAll", { pin: getPin() });
+  });
+
+  // Add lap
   const form = document.getElementById("scoreForm");
   const submitHint = document.getElementById("submitHint");
   const day = document.getElementById("day");
@@ -349,6 +539,7 @@
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    if (!settings?.liveEventId) return;
 
     socket.emit("newScore", {
       first: document.getElementById("first").value.trim(),
@@ -360,138 +551,111 @@
       car: document.getElementById("car").value.trim(),
       cohort: document.getElementById("cohort").value,
       course: document.getElementById("course").value.trim(),
-      event: settings.eventName,
+      eventId: settings.liveEventId,
       createdAt: new Date().toISOString()
     });
   });
 
   socket.on("submitResult", (r) => {
     if (r?.ok) {
-      if (r.mode === "replaced") submitHint.textContent = "PB updated (replaced existing row).";
-      else submitHint.textContent = "Submitted (new entry).";
-
+      submitHint.textContent = r.mode === "replaced" ? "PB updated (replaced existing row)." : "Submitted (new row).";
       form.reset();
-
       const d = new Date();
       const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
       document.getElementById("day").value = days[d.getDay()];
     } else {
-      if (r?.reason === "duplicate") submitHint.textContent = "Ignored: duplicate spam.";
-      else if (r?.reason === "not_better") submitHint.textContent = "Ignored: not better than existing PB.";
+      if (r?.reason === "not_better") submitHint.textContent = "Attempt logged, but not better than PB (leaderboard unchanged).";
+      else if (r?.reason === "duplicate") submitHint.textContent = "Ignored: duplicate spam attempt.";
       else submitHint.textContent = "Rejected: invalid fields.";
     }
   });
 
-  // ---- event counts ----
-  const eventCounts = document.getElementById("eventCounts");
-  socket.on("eventCounts", (map) => {
-    const entries = Object.entries(map || {}).sort((a,b) => b[1]-a[1]);
-    eventCounts.innerHTML = entries.length
-      ? entries.map(([name, n]) => `
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <span class="truncate">${escapeHtml(name)}</span>
-            <span class="text-zinc-400">${n}</span>
-          </div>
-        `).join("")
-      : `<div class="text-zinc-500 text-sm">No entries yet.</div>`;
+  // Pinned list (leaderboard rows only)
+  const entryList = document.getElementById("entryList");
+  const pinnedSummary = document.getElementById("pinnedSummary");
+
+  entryList.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-del]");
+    if (!btn) return;
+
+    const id = btn.getAttribute("data-del");
+    const ok = confirm("Delete this leaderboard row? (Does not remove attempts history.)");
+    if (!ok) return;
+
+    socket.emit("adminDeleteScore", { pin: getPin(), id });
   });
 
-  // ---- entry list + delete ----
-  const entryList = document.getElementById("entryList");
-  const search = document.getElementById("search");
-  let allScores = [];
-
-  function escapeHtml(s) {
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+  function timeToMs(t) {
+    const str = String(t).trim();
+    if (/^\d+:\d{2}\.\d{3}$/.test(str)) {
+      const [m, rest] = str.split(":");
+      const [s, ms] = rest.split(".");
+      return (parseInt(m,10) * 60 + parseInt(s,10)) * 1000 + parseInt(ms,10);
+    }
+    if (/^\d+\.\d{3}$/.test(str)) {
+      const [s, ms] = str.split(".");
+      return parseInt(s,10) * 1000 + parseInt(ms,10);
+    }
+    return Infinity;
   }
 
-  function renderEntries() {
-    const q = (search.value || "").trim().toLowerCase();
-    const current = settings.eventName || "Open Practice";
+  function currentPinnedEventId() {
+    return settings.fullscreen?.followLiveEvent ? settings.liveEventId : settings.fullscreen?.eventId;
+  }
 
-    const list = allScores
-      .filter(s => (s.event || "Open Practice") === current)
-      .filter(s => !q || `${s.first} ${s.last} ${s.track}`.toLowerCase().includes(q))
+  function renderPinnedList() {
+    if (!settings) return;
+
+    const eid = currentPinnedEventId();
+    const pinnedName = settings.events.find(e => e.id === eid)?.name || "—";
+    pinnedSummary.textContent = pinnedName;
+
+    const list = scores.filter(s => s.eventId === eid)
       .slice()
-      .reverse()
+      .sort((a,b) => timeToMs(a.time) - timeToMs(b.time))
       .slice(0, 60);
 
     entryList.innerHTML = list.map(s => `
       <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
         <div class="flex items-start justify-between gap-2">
-          <div>
-            <div class="font-semibold">
-              ${escapeHtml(s.first)} ${escapeHtml(s.last)}
-              <span class="text-zinc-400 font-normal">(${escapeHtml(s.cohort)} • ${escapeHtml(s.course)})</span>
-            </div>
-            <div class="text-sm text-zinc-300">
-              ${escapeHtml(s.time)} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)} • ${escapeHtml(s.car || "—")}
-            </div>
+          <div class="min-w-0">
+            <div class="font-semibold truncate">${escapeHtml(s.first)} ${escapeHtml(s.last)}</div>
+            <div class="text-sm text-zinc-300 truncate">${escapeHtml(s.time)} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)} • ${escapeHtml(s.car || "—")}</div>
+            <div class="text-xs text-zinc-500 truncate">${escapeHtml(s.cohort || "Guest")} / ${escapeHtml(s.course || "—")}</div>
           </div>
-          <button data-del="${escapeHtml(s.id)}"
-            class="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-            Delete
-          </button>
+          <button type="button" data-del="${escapeHtml(s.id)}"
+  class="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
+  Delete
+</button>
         </div>
       </div>
-    `).join("") || `<div class="text-zinc-500 text-sm">No entries for this event.</div>`;
-
-    entryList.querySelectorAll("button[data-del]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-del");
-        const ok = confirm("Delete this entry?");
-        if (!ok) return;
-        socket.emit("adminDeleteScore", { pin: getPin(), id });
-      });
-    });
+    `).join("") || `<div class="text-zinc-500 text-sm">No rows for pinned event.</div>`;
   }
 
-  search.addEventListener("input", renderEntries);
-
+  // Socket events
   socket.on("loadScores", (existing) => {
-    allScores = Array.isArray(existing) ? existing : [];
-    renderEntries();
+    scores = Array.isArray(existing) ? existing : [];
     pingPin();
-  });
-
-  socket.on("scoreUpdate", (s) => {
-    allScores.push(s);
-    renderEntries();
-  });
-
-  socket.on("scoreReplace", (s) => {
-    const idx = allScores.findIndex(x => x.id === s.id);
-    if (idx !== -1) allScores[idx] = s;
-    else allScores.push(s);
-    renderEntries();
-  });
-
-  socket.on("deleteScore", ({ id }) => {
-    allScores = allScores.filter(s => s.id !== id);
-    renderEntries();
-  });
-
-  socket.on("clearAll", () => {
-    allScores = [];
-    renderEntries();
-  });
-
-  socket.on("clearEvent", ({ eventName }) => {
-    allScores = allScores.filter(s => s.event !== eventName);
-    renderEntries();
+    renderPinnedList();
   });
 
   socket.on("settingsUpdate", (s) => {
-    settings = s || settings;
-    refreshSettingsUI();
-    refreshModeButtons();
-    renderEntries();
+    settings = s;
+    settings.fullscreen ||= { eventId: "evt_default", game: "", followLiveEvent: true, useTvCycle: false };
+    refreshUI();
   });
+
+  socket.on("scoreUpdate", (s) => { scores.push(s); renderPinnedList(); });
+  socket.on("scoreReplace", (s) => {
+    const idx = scores.findIndex(x => x.id === s.id);
+    if (idx !== -1) scores[idx] = s; else scores.push(s);
+    renderPinnedList();
+  });
+
+  socket.on("deleteScore", ({ id }) => { scores = scores.filter(s => s.id !== id); renderPinnedList(); });
+  socket.on("clearAll", () => { scores = []; renderPinnedList(); });
+  socket.on("clearEvent", ({ eventId }) => { scores = scores.filter(s => s.eventId !== eventId); renderPinnedList(); });
+  socket.on("clearDemo", () => { scores = scores.filter(s => !s.demo); renderPinnedList(); });
 
   socket.on("adminResult", (r) => {
     if (!r?.ok) {
@@ -499,10 +663,15 @@
       pingPin();
       return;
     }
-    if (r.action === "clearAll") showToast(`Cleared ALL entries (${r.removed}).`, true);
-    else if (r.action === "clearEvent") showToast(`Cleared event entries (${r.removed}).`, true);
-    else if (r.action === "deleteScore") showToast(`Deleted (${r.removed}).`, true);
+
+    if (r.action === "createEvent") showToast("Event created.", true);
+    else if (r.action === "setLiveEvent") showToast("LIVE event set.", true);
+    else if (r.action === "resetEventBoard") showToast(`Reset event board. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
+    else if (r.action === "clearDemo") showToast(`Cleared demo. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
+    else if (r.action === "cleanup") showToast(`Cleanup done. Removed attempts=${r.removedAttempts}` + (typeof r.removedScores === "number" ? `, rows=${r.removedScores}` : ""), true);
+    else if (r.action === "clearAll") showToast(`Cleared EVERYTHING. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
     else showToast(`OK: ${r.action}`, true);
+
     pingPin();
   });
 </script>

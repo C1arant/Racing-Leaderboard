@@ -4,5 +4,23 @@
   "tvCycleEnabled": false,
   "tvCycleRateMs": 15000,
   "demoEnabled": false,
-  "demoRateMs": 4000
+  "demoRateMs": 4000,
+  "events": [
+    {
+      "id": "evt_default",
+      "name": "General Leaderboard",
+      "isLive": false,
+      "createdAt": "2026-01-09T09:08:10.838Z"
+    },
+    {
+      "id": "evt_demo",
+      "name": "Demo Data",
+      "isLive": true,
+      "createdAt": "2026-01-09T09:12:57.763Z"
+    }
+  ],
+  "fullscreen": {
+    "eventId": "evt_demo",
+    "game": "Assetto Corsa"
+  }
 }
