@@ -30,7 +30,7 @@
 
 <body class="min-h-screen bg-zinc-950 text-zinc-100">
   <div class="max-w-[1700px] mx-auto px-6 py-6">
-    <div class="flex items-end justify-between gap-4 mb-5">
+    <header class="flex items-center justify-between gap-4 mb-6">
       <div class="min-w-0">
         <div class="flex items-center gap-3 min-w-0">
           <h1 class="t-title font-extrabold tracking-tight truncate">🏁 Leaderboards</h1>
@@ -38,13 +38,14 @@
             LIVE: <span id="liveEventName" class="font-semibold">—</span>
           </span>
         </div>
-        <p class="t-sub text-zinc-400 mt-1">Search names, tracks, cars • All events available</p>
+        <p class="t-sub text-zinc-400 mt-1">Search names, tracks, cars — clear, fast, and privacy-aware.</p>
       </div>
-      <div class="flex items-center gap-2 t-sub">
-        <a href="/fullscreen" class="hidden md:inline-block underline text-zinc-300 hover:text-white">Fullscreen</a>
-        <a href="/admin" class="underline text-zinc-300 hover:text-white">Admin</a>
-      </div>
-    </div>
+      <nav class="flex items-center gap-2 t-sub">
+        <a href="/fullscreen" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900 hidden md:inline-block">Fullscreen</a>
+        <a href="/admin" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Admin</a>
+        <a href="/rig" class="px-3 py-2 rounded-md bg-amber-500 text-black font-semibold hover:opacity-95">Rig UI</a>
+      </nav>
+    </header>
 
     <!-- Mode toggle -->
     <div class="flex flex-wrap items-center gap-2 mb-4">

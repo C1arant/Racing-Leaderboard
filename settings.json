@@ -22,18 +22,18 @@
   "fullscreen": {
     "eventId": "evt_demo",
     "game": "Assetto Corsa",
-    "useTvCycle": true,
-    "followLiveEvent": true
+    "useTvCycle": false,
+    "followLiveEvent": false
   },
   "lecturerMode": true,
   "privacy": {
-    "nameMode": "FULL",
+    "nameMode": "FIRST_LAST_INITIAL",
     "hideCourse": false
   },
-  "autoScroll": false,
+  "autoScroll": true,
   "autoScrollRateMs": 15000,
   "autoScrollPauseMs": 2000,
-  "spotlight": true,
+  "spotlight": false,
   "spotlightRateMs": 10000,
-  "spotlightMode": "recent"
+  "spotlightMode": "improved"
 }

@@ -18,6 +18,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "display.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get("/fullscreen", (req, res) => res.sendFile(path.join(__dirname, "public", "fullscreen.html")));
+// Serve the rig UI at /rig for convenience (also available as /rig.html)
+app.get("/rig", (req, res) => res.sendFile(path.join(__dirname, "public", "rig.html")));
 
 const DATA_FILE = path.join(__dirname, "scores.json");        // clean leaderboard rows
 const ATTEMPTS_FILE = path.join(__dirname, "attempts.json");  // full history

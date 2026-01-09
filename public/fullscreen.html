@@ -52,14 +52,15 @@
             View: <span id="gameLabel" class="font-semibold">Mixed</span>
           </span>
         </div>
-        <p class="t-sub text-zinc-400 mt-2">Pinned by admin • podium + top 20</p>
+        <p class="t-sub text-zinc-400 mt-2">Clean TV layout — podium + top 20. Designed for in-room signage.</p>
       </div>
 
       <div class="flex items-center gap-3 t-sub">
         <span class="inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2">
-          <span id="liveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span id="liveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
           <span id="liveLabel">Live</span>
         </span>
+        <a href="/" class="ml-3 text-sm px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Back to display</a>
       </div>
     </div>
 
@@ -253,7 +254,6 @@
     return true;
   }
 
-  // Auto-scroll state
   let autoScrollActive = false;
   let autoScrollInterval = null;
   let lastLapTime = Date.now();
@@ -262,10 +262,10 @@
     if (autoScrollActive || !settings.autoScroll) return;
     
     autoScrollActive = true;
-    const tableBody = rows.closest("table");
-    if (!tableBody) return;
+       const table = rows.closest("table");
+       if (!table) return;
 
-    const scrollContainer = tableBody.closest(".overflow-hidden");
+       const scrollContainer = table.parentElement;
     if (!scrollContainer) return;
 
     let scrollDirection = 1; // 1 = down, -1 = up
@@ -301,11 +301,11 @@
     };
 
     autoScrollInterval && clearTimeout(autoScrollInterval);
-    autoScrollInterval = setTimeout(doScroll, settings.autoScrollRateMs || 15000);
+    doScroll();
   }
 
   function stopAutoScroll() {
-    autoScrollActive = false;
+      autoScrollActive = false;
     if (autoScrollInterval) {
       clearTimeout(autoScrollInterval);
       autoScrollInterval = null;

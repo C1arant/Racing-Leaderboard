@@ -10,16 +10,17 @@
 
 <body class="min-h-screen bg-zinc-950 text-zinc-100">
   <div class="max-w-6xl mx-auto px-4 py-6">
-    <div class="flex items-end justify-between mb-5">
-      <div>
-        <h1 class="text-3xl font-extrabold tracking-tight">Control Desk</h1>
-        <p class="text-zinc-400">Events, pinned fullscreen, clean leaderboard, full attempts history.</p>
+    <header class="flex items-center justify-between mb-6">
+      <div class="min-w-0">
+        <h1 class="text-3xl font-extrabold tracking-tight">Racing Leaderboard — Control Desk</h1>
+        <p class="text-zinc-400 truncate">Manage events, display pins, rig submissions, and data hygiene.</p>
       </div>
-      <div class="flex gap-3">
-        <a href="/" class="text-sm underline text-zinc-300 hover:text-white">Display →</a>
-        <a href="/fullscreen" class="text-sm underline text-zinc-300 hover:text-white">Fullscreen →</a>
-      </div>
-    </div>
+      <nav class="flex items-center gap-3 text-sm">
+        <a href="/" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Display</a>
+        <a href="/fullscreen" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Fullscreen</a>
+        <a href="/rig" class="px-3 py-2 rounded-md bg-amber-500 text-black font-semibold hover:opacity-95">Rig UI</a>
+      </nav>
+    </header>
 
     <div id="toast" class="hidden mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm"></div>
 
@@ -122,6 +123,38 @@
           <button id="resetPinnedEvent" class="w-full px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
             Reset Pinned Event Board (scores + attempts)
           </button>
+        </div>
+
+        <!-- Rig Controls -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+          <h2 class="font-semibold text-lg">Rig Controls</h2>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Enable rig submissions</p>
+              <p class="text-xs text-zinc-500">Allow rig PCs to POST laps using a shared `RIG_KEY`.</p>
+            </div>
+            <button id="rigToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-zinc-400">Timed laps</label>
+              <input id="rigTimedLaps" type="number" min="1" value="3"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400">Out laps</label>
+              <input id="rigOutLaps" type="number" min="0" value="1"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+          </div>
+
+          <div class="mt-3 flex gap-2 items-center">
+            <input id="rigFlushFile" type="file" accept=".json" class="text-xs text-zinc-400" aria-label="Upload pending laps JSON" />
+            <button id="rigFlushBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Flush Pending</button>
+            <span id="rigFlushHint" class="text-xs text-zinc-500">Upload a `pending_laps.json` from a rig to import queued laps.</span>
+          </div>
         </div>
 
         <!-- Tools -->
@@ -474,6 +507,14 @@
   const presetTeaching = document.getElementById("presetTeaching");
   const presetMarketing = document.getElementById("presetMarketing");
 
+  // Rig controls
+  const rigToggle = document.getElementById("rigToggle");
+  const rigTimedLaps = document.getElementById("rigTimedLaps");
+  const rigOutLaps = document.getElementById("rigOutLaps");
+  const rigFlushFile = document.getElementById("rigFlushFile");
+  const rigFlushBtn = document.getElementById("rigFlushBtn");
+  const rigFlushHint = document.getElementById("rigFlushHint");
+
   // Cleanup UI
   const cleanupHint = document.getElementById("cleanupHint");
   const cleanupDays = document.getElementById("cleanupDays");
@@ -559,6 +600,8 @@
     cleanupHint.textContent = "Attempts cleanup";
     renderEventOptions();
     renderPinnedList();
+    // rig UI
+    if (typeof refreshRigUI === "function") refreshRigUI();
   }
 
   // Events actions
@@ -668,6 +711,55 @@
       rateMs: Number(spotlightRate.value || 10000),
       mode: spotlightMode.value
     });
+  });
+
+  // Rig control handlers
+  function refreshRigUI() {
+    if (!settings) return;
+    const rig = settings.rig || { enabled: false, timedLaps: 3, outLaps: 1 };
+    rigToggle.textContent = rig.enabled ? "On" : "Off";
+    rigToggle.className = rig.enabled
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+    rigTimedLaps.value = rig.timedLaps || 3;
+    rigOutLaps.value = rig.outLaps || 1;
+  }
+
+  rigToggle.addEventListener("click", () => {
+    const newVal = !(settings?.rig?.enabled);
+    socket.emit("adminRigSettings", { pin: getPin(), patch: { enabled: newVal } });
+  });
+
+  rigTimedLaps.addEventListener("change", () => {
+    const v = Number(rigTimedLaps.value || 3);
+    socket.emit("adminRigSettings", { pin: getPin(), patch: { timedLaps: v } });
+  });
+  rigOutLaps.addEventListener("change", () => {
+    const v = Number(rigOutLaps.value || 1);
+    socket.emit("adminRigSettings", { pin: getPin(), patch: { outLaps: v } });
+  });
+
+  rigFlushBtn.addEventListener("click", async () => {
+    const file = rigFlushFile.files && rigFlushFile.files[0];
+    if (!file) return showToast("Choose a pending_laps.json file first.", false);
+    const text = await file.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch (e) { return showToast("Invalid JSON file.", false); }
+    try {
+      const resp = await fetch("/api/rig/flush", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Admin-Pin": getPin() },
+        body: JSON.stringify(parsed)
+      });
+      const j = await resp.json();
+      if (j?.ok) {
+        showToast(`Imported ${j.imported || 0} laps.`, true);
+      } else {
+        showToast(`Flush failed: ${j.reason || 'error'}`, false);
+      }
+    } catch (e) {
+      showToast("Network error during flush.", false);
+    }
   });
 
   // Presets

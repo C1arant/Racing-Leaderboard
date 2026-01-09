@@ -12,17 +12,17 @@
   "Assetto Corsa|silverstone gp|noah|reed": {
     "rating": 1000,
     "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:15.683Z"
+    "updatedAt": "2026-01-09T10:07:07.980Z"
   },
   "F1 25|interlagos|sam|walker": {
-    "rating": 1000,
-    "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:19.698Z"
+    "rating": 1005,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:07:11.984Z"
   },
   "F1 25|monza|zoe|bennett": {
     "rating": 1000,
     "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:23.703Z"
+    "updatedAt": "2026-01-09T10:07:03.966Z"
   },
   "F1 25|interlagos|liam|carter": {
     "rating": 1000,
@@ -30,9 +30,9 @@
     "updatedAt": "2026-01-09T09:57:27.705Z"
   },
   "Assetto Corsa|spa-francorchamps|zoe|bennett": {
-    "rating": 1000,
-    "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:31.711Z"
+    "rating": 1005,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:06:55.944Z"
   },
   "Assetto Corsa|spa-francorchamps|priya|shah": {
     "rating": 1000,
@@ -42,17 +42,17 @@
   "F1 25|suzuka|zoe|bennett": {
     "rating": 1000,
     "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:39.733Z"
+    "updatedAt": "2026-01-09T10:08:36.146Z"
   },
   "Assetto Corsa|imola|chris|patel": {
     "rating": 1000,
-    "lastChange": 5,
-    "updatedAt": "2026-01-09T09:57:43.734Z"
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:11.831Z"
   },
   "Assetto Corsa|imola|ellie|jones": {
-    "rating": 1000,
-    "lastChange": 0,
-    "updatedAt": "2026-01-09T09:57:47.745Z"
+    "rating": 1005,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:07:19.995Z"
   },
   "F1 25|bahrain|alex|turner": {
     "rating": 1000,
@@ -82,7 +82,7 @@
   "Assetto Corsa|imola|ava|hughes": {
     "rating": 1000,
     "lastChange": 0,
-    "updatedAt": "2026-01-09T09:58:11.803Z"
+    "updatedAt": "2026-01-09T10:09:00.203Z"
   },
   "F1 25|silverstone|owen|clarke": {
     "rating": 1000,
@@ -97,7 +97,7 @@
   "Assetto Corsa|monza|sam|walker": {
     "rating": 1000,
     "lastChange": 0,
-    "updatedAt": "2026-01-09T09:58:23.828Z"
+    "updatedAt": "2026-01-09T10:06:15.835Z"
   },
   "Assetto Corsa|nürburgring gp|chris|patel": {
     "rating": 1000,
@@ -113,5 +113,210 @@
     "rating": 1000,
     "lastChange": 0,
     "updatedAt": "2026-01-09T09:58:35.858Z"
+  },
+  "F1 25|interlagos|owen|clarke": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:07.837Z"
+  },
+  "Assetto Corsa|monza|priya|shah": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:06:19.846Z"
+  },
+  "F1 25|interlagos|ellie|jones": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:23.846Z"
+  },
+  "Assetto Corsa|silverstone gp|alex|turner": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:27.859Z"
+  },
+  "F1 25|silverstone|priya|shah": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:31.871Z"
+  },
+  "Assetto Corsa|spa-francorchamps|noah|reed": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:35.885Z"
+  },
+  "Assetto Corsa|spa-francorchamps|alex|turner": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:39.900Z"
+  },
+  "Assetto Corsa|nürburgring gp|zoe|bennett": {
+    "rating": 1030,
+    "lastChange": 30,
+    "updatedAt": "2026-01-09T10:07:48.031Z"
+  },
+  "Assetto Corsa|silverstone gp|ava|hughes": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:06:47.922Z"
+  },
+  "Assetto Corsa|spa-francorchamps|sam|walker": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:06:51.933Z"
+  },
+  "F1 25|interlagos|zoe|bennett": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:06:59.952Z"
+  },
+  "F1 25|bahrain|zoe|bennett": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:07:15.985Z"
+  },
+  "Assetto Corsa|imola|owen|clarke": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:07:23.996Z"
+  },
+  "F1 25|bahrain|noah|reed": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:07:28.002Z"
+  },
+  "F1 25|bahrain|maya|singh": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:07:32.004Z"
+  },
+  "F1 25|suzuka|alex|turner": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:07:40.014Z"
+  },
+  "Assetto Corsa|nürburgring gp|liam|carter": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:07:44.024Z"
+  },
+  "Assetto Corsa|imola|jordan|evans": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:07:52.040Z"
+  },
+  "Assetto Corsa|silverstone gp|chris|patel": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:07:56.040Z"
+  },
+  "F1 25|silverstone|maya|singh": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:04.065Z"
+  },
+  "F1 25|monza|priya|shah": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:08.080Z"
+  },
+  "Assetto Corsa|spa-francorchamps|chris|patel": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:08:12.090Z"
+  },
+  "Assetto Corsa|nürburgring gp|maya|singh": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:08:16.100Z"
+  },
+  "Assetto Corsa|silverstone gp|jordan|evans": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:20.108Z"
+  },
+  "F1 25|suzuka|noah|reed": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:24.120Z"
+  },
+  "F1 25|monza|maya|singh": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:28.130Z"
+  },
+  "F1 25|suzuka|ava|hughes": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:32.140Z"
+  },
+  "Assetto Corsa|silverstone gp|liam|carter": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:40.155Z"
+  },
+  "F1 25|monza|chris|patel": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:44.166Z"
+  },
+  "F1 25|monza|noah|reed": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:08:48.179Z"
+  },
+  "Assetto Corsa|silverstone gp|sam|walker": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:08:52.187Z"
+  },
+  "F1 25|bahrain|sam|walker": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:08:56.197Z"
+  },
+  "Assetto Corsa|nürburgring gp|noah|reed": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:09:04.206Z"
+  },
+  "Assetto Corsa|nürburgring gp|alex|turner": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:09:08.211Z"
+  },
+  "Assetto Corsa|monza|ciaran|t": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:35:53.157Z"
+  },
+  "Assetto Corsa|monza|jon|u": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:29:45.330Z"
+  },
+  "Assetto Corsa|monza|callum|m": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:31:08.021Z"
+  },
+  "Assetto Corsa|monza|matt|p": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:31:59.120Z"
+  },
+  "Assetto Corsa|monza|dennis|p": {
+    "rating": 1000,
+    "lastChange": 5,
+    "updatedAt": "2026-01-09T10:32:39.441Z"
+  },
+  "Assetto Corsa|monza|ryan|h": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:33:05.502Z"
+  },
+  "Assetto Corsa|monza|keith|w": {
+    "rating": 1000,
+    "lastChange": 0,
+    "updatedAt": "2026-01-09T10:35:25.211Z"
   }
 }
