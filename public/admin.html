@@ -126,6 +126,98 @@
 
         <!-- Tools -->
         <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+          <h2 class="font-semibold text-lg">Presets</h2>
+          <p class="text-xs text-zinc-400">Quick-apply display modes for different scenarios.</p>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="presetOpenDay" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Open Day
+            </button>
+            <button id="presetTournament" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Tournament
+            </button>
+            <button id="presetTeaching" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Teaching
+            </button>
+            <button id="presetMarketing" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Marketing
+            </button>
+          </div>
+
+          <div class="border-t border-zinc-800 pt-3"></div>
+
+          <!-- Lecturer mode -->
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Lecturer Mode</p>
+              <p class="text-xs text-zinc-500">Hide last names, show tags.</p>
+            </div>
+            <button id="lecturerToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+          </div>
+
+          <div>
+            <label class="text-xs text-zinc-400">Name display mode</label>
+            <select id="nameMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+              <option value="FULL">Full name</option>
+              <option value="FIRST_INITIAL">First initial + last</option>
+              <option value="FIRST_LAST_INITIAL">First + last initial</option>
+            </select>
+          </div>
+
+          <!-- Auto-scroll -->
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
+            <div>
+              <p class="font-semibold">Auto-scroll (Fullscreen)</p>
+              <p class="text-xs text-zinc-500">Slow broadcast crawl.</p>
+            </div>
+            <button id="autoScrollToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-zinc-400">Scroll rate (ms)</label>
+              <input id="autoScrollRate" value="15000" type="number" min="1000"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400">Pause (ms)</label>
+              <input id="autoScrollPause" value="2000" type="number" min="500"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+          </div>
+
+          <!-- Spotlight -->
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
+            <div>
+              <p class="font-semibold">Spotlight Mode (Fullscreen)</p>
+              <p class="text-xs text-zinc-500">Highlight driver every N seconds.</p>
+            </div>
+            <button id="spotlightToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-zinc-400">Spotlight rate (ms)</label>
+              <input id="spotlightRate" value="10000" type="number" min="2000"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+            <div>
+              <label class="text-xs text-zinc-400">Mode</label>
+              <select id="spotlightMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                <option value="recent">Recent attempt</option>
+                <option value="random">Random top 20</option>
+                <option value="improved">Most improved</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="applyDisplaySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 mt-3">
+            Apply Display Settings
+          </button>
+        </div>
+
+        <!-- Tools -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
           <h2 class="font-semibold text-lg">Tools</h2>
 
           <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
@@ -366,6 +458,22 @@
   const tvRate = document.getElementById("tvRate");
   const clearAll = document.getElementById("clearAll");
 
+  // New features
+  const lecturerToggle = document.getElementById("lecturerToggle");
+  const nameMode = document.getElementById("nameMode");
+  const autoScrollToggle = document.getElementById("autoScrollToggle");
+  const autoScrollRate = document.getElementById("autoScrollRate");
+  const autoScrollPause = document.getElementById("autoScrollPause");
+  const spotlightToggle = document.getElementById("spotlightToggle");
+  const spotlightRate = document.getElementById("spotlightRate");
+  const spotlightMode = document.getElementById("spotlightMode");
+  const applyDisplaySettings = document.getElementById("applyDisplaySettings");
+
+  const presetOpenDay = document.getElementById("presetOpenDay");
+  const presetTournament = document.getElementById("presetTournament");
+  const presetTeaching = document.getElementById("presetTeaching");
+  const presetMarketing = document.getElementById("presetMarketing");
+
   // Cleanup UI
   const cleanupHint = document.getElementById("cleanupHint");
   const cleanupDays = document.getElementById("cleanupDays");
@@ -425,6 +533,28 @@
     tvToggle.className = settings.tvCycleEnabled
       ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
       : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+
+    // New features
+    lecturerToggle.textContent = settings.lecturerMode ? "On" : "Off";
+    lecturerToggle.className = settings.lecturerMode
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+
+    nameMode.value = settings.privacy?.nameMode || "FULL";
+
+    autoScrollToggle.textContent = settings.autoScroll ? "On" : "Off";
+    autoScrollToggle.className = settings.autoScroll
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+    autoScrollRate.value = settings.autoScrollRateMs ?? 15000;
+    autoScrollPause.value = settings.autoScrollPauseMs ?? 2000;
+
+    spotlightToggle.textContent = settings.spotlight ? "On" : "Off";
+    spotlightToggle.className = settings.spotlight
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+    spotlightRate.value = settings.spotlightRateMs ?? 10000;
+    spotlightMode.value = settings.spotlightMode || "recent";
 
     cleanupHint.textContent = "Attempts cleanup";
     renderEventOptions();
@@ -500,6 +630,58 @@
   // TV cycle
   tvToggle.addEventListener("click", () => {
     socket.emit("adminTvCycle", { pin: getPin(), enabled: !settings.tvCycleEnabled, rateMs: Number(tvRate.value || 15000) });
+  });
+
+  // Lecturer mode & display settings
+  lecturerToggle.addEventListener("click", () => {
+    settings.lecturerMode = !settings.lecturerMode;
+    refreshUI();
+  });
+
+  autoScrollToggle.addEventListener("click", () => {
+    settings.autoScroll = !settings.autoScroll;
+    refreshUI();
+  });
+
+  spotlightToggle.addEventListener("click", () => {
+    settings.spotlight = !settings.spotlight;
+    refreshUI();
+  });
+
+  applyDisplaySettings.addEventListener("click", () => {
+    socket.emit("adminLecturerMode", {
+      pin: getPin(),
+      patch: {
+        lecturerMode: settings.lecturerMode,
+        privacy: { nameMode: nameMode.value }
+      }
+    });
+    socket.emit("adminAutoScroll", {
+      pin: getPin(),
+      enabled: settings.autoScroll,
+      rateMs: Number(autoScrollRate.value || 15000),
+      pauseMs: Number(autoScrollPause.value || 2000)
+    });
+    socket.emit("adminSpotlight", {
+      pin: getPin(),
+      enabled: settings.spotlight,
+      rateMs: Number(spotlightRate.value || 10000),
+      mode: spotlightMode.value
+    });
+  });
+
+  // Presets
+  presetOpenDay.addEventListener("click", () => {
+    socket.emit("adminPreset", { pin: getPin(), preset: "openDay" });
+  });
+  presetTournament.addEventListener("click", () => {
+    socket.emit("adminPreset", { pin: getPin(), preset: "tournament" });
+  });
+  presetTeaching.addEventListener("click", () => {
+    socket.emit("adminPreset", { pin: getPin(), preset: "teaching" });
+  });
+  presetMarketing.addEventListener("click", () => {
+    socket.emit("adminPreset", { pin: getPin(), preset: "marketing" });
   });
 
   // Cleanup

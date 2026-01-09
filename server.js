@@ -22,6 +22,7 @@ app.get("/fullscreen", (req, res) => res.sendFile(path.join(__dirname, "public",
 const DATA_FILE = path.join(__dirname, "scores.json");        // clean leaderboard rows
 const ATTEMPTS_FILE = path.join(__dirname, "attempts.json");  // full history
 const SETTINGS_FILE = path.join(__dirname, "settings.json");
+const RATINGS_FILE = path.join(__dirname, "ratings.json");    // ELO-lite ratings
 
 const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
 
@@ -47,15 +48,78 @@ function saveJson(file, data) {
 function saveScores() { saveJson(DATA_FILE, scores); }
 function saveAttempts() { saveJson(ATTEMPTS_FILE, attempts); }
 function saveSettings() { saveJson(SETTINGS_FILE, settings); }
+function saveRatings() { saveJson(RATINGS_FILE, ratings); }
 
 function isAdmin(pin) { return String(pin || "") === String(ADMIN_PIN); }
 function makeId() {
   return (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
-// -------------------- State --------------------
+// -------------------- Rating System (ELO-lite) --------------------
+function getRatingKey(game, track, first, last) {
+  return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+}
+
+function getDriverRating(game, track, first, last) {
+  const key = getRatingKey(game, track, first, last);
+  if (!ratings[key]) {
+    ratings[key] = {
+      rating: 1000,
+      lastChange: 0,
+      updatedAt: new Date().toISOString()
+    };
+  }
+  return ratings[key];
+}
+
+function getFieldMedianTime(game, track) {
+  const times = scores
+    .filter(s => s.game === game && s.track.toLowerCase() === track.toLowerCase())
+    .map(s => timeToMs(s.time))
+    .filter(t => t !== Infinity && t > 0)
+    .sort((a, b) => a - b);
+  
+  if (times.length === 0) return Infinity;
+  const mid = Math.floor(times.length / 2);
+  return times.length % 2 === 0 ? (times[mid - 1] + times[mid]) / 2 : times[mid];
+}
+
+function calculateRatingDelta(oldPBMs, newPBMs, newTime, medianMs) {
+  let delta = 0;
+
+  // PB improvement points
+  if (newPBMs < oldPBMs && oldPBMs > 0) {
+    const improvementPct = (oldPBMs - newPBMs) / oldPBMs;
+    delta += Math.max(1, Math.min(25, Math.round(improvementPct * 400)));
+  }
+
+  // Field position points
+  if (medianMs !== Infinity && medianMs > 0) {
+    if (newPBMs < medianMs) {
+      // Faster than median: +5 to +15
+      const percentageFasterThanMedian = (medianMs - newPBMs) / medianMs;
+      delta += Math.max(5, Math.min(15, Math.round(percentageFasterThanMedian * 15)));
+    }
+    // Slower than median: 0 (don't punish)
+  }
+
+  return delta;
+}
+
+// Normalize name for display
+function normalizeName(first, last, nameMode) {
+  if (nameMode === "FIRST_INITIAL") {
+    return `${first.charAt(0)}. ${last}`;
+  } else if (nameMode === "FIRST_LAST_INITIAL") {
+    return `${first} ${last.charAt(0)}.`;
+  }
+  return `${first} ${last}`;
+}
+
+// -------------------- Events helpers --------------------
 let scores = loadJson(DATA_FILE, []);
 let attempts = loadJson(ATTEMPTS_FILE, []);
+let ratings = loadJson(RATINGS_FILE, {});
 
 let settings = loadJson(SETTINGS_FILE, {
   events: [
@@ -74,7 +138,29 @@ let settings = loadJson(SETTINGS_FILE, {
   tvCycleRateMs: 15000,
 
   demoEnabled: false,
-  demoRateMs: 4000
+  demoRateMs: 4000,
+
+  // New features
+  lecturerMode: false,
+  privacy: {
+    nameMode: "FULL",       // "FULL", "FIRST_INITIAL", "FIRST_LAST_INITIAL"
+    hideCourse: false
+  },
+
+  autoScroll: false,
+  autoScrollRateMs: 15000,
+  autoScrollPauseMs: 2000,
+
+  spotlight: false,
+  spotlightRateMs: 10000,
+  spotlightMode: "recent", // "recent", "random", "improved"
+
+  presets: {
+    openDay: false,
+    tournament: false,
+    teaching: false,
+    marketing: false
+  }
 });
 
 // -------------------- Events helpers --------------------
@@ -203,23 +289,63 @@ function submitLap(raw) {
   const key = makeKey(clean);
   const idx = scores.findIndex(s => makeKey(s) === key);
 
+  let ratingDelta = 0;
+
   if (idx === -1) {
+    // New driver on this track
     const row = { ...clean };
     scores.push(row);
+    
+    // Calculate initial rating
+    const ratingKey = getRatingKey(clean.game, clean.track, clean.first, clean.last);
+    const medianMs = getFieldMedianTime(clean.game, clean.track);
+    ratingDelta = calculateRatingDelta(1000, timeToMs(clean.time), timeToMs(clean.time), medianMs);
+    
+    // Initialize/update rating
+    if (!ratings[ratingKey]) {
+      ratings[ratingKey] = {
+        rating: 1000,
+        lastChange: ratingDelta,
+        updatedAt: new Date().toISOString()
+      };
+    } else {
+      ratings[ratingKey].rating += ratingDelta;
+      ratings[ratingKey].lastChange = ratingDelta;
+      ratings[ratingKey].updatedAt = new Date().toISOString();
+    }
+    
     saveScores();
+    saveRatings();
     io.emit("scoreUpdate", row);
+    io.emit("ratingsUpdate", ratings);
     broadcastCounts();
-    return { ok: true, mode: "added" };
+    return { ok: true, mode: "added", ratingDelta };
   }
 
   const old = scores[idx];
   if (timeToMs(clean.time) < timeToMs(old.time)) {
     const row = { ...clean, id: old.id }; // keep row id stable
     scores[idx] = row;
+    
+    // Calculate rating improvement
+    const ratingKey = getRatingKey(clean.game, clean.track, clean.first, clean.last);
+    const oldRating = getDriverRating(clean.game, clean.track, clean.first, clean.last);
+    const medianMs = getFieldMedianTime(clean.game, clean.track);
+    
+    ratingDelta = calculateRatingDelta(timeToMs(old.time), timeToMs(clean.time), timeToMs(clean.time), medianMs);
+    
+    if (ratings[ratingKey]) {
+      ratings[ratingKey].rating += ratingDelta;
+      ratings[ratingKey].lastChange = ratingDelta;
+      ratings[ratingKey].updatedAt = new Date().toISOString();
+    }
+    
     saveScores();
+    saveRatings();
     io.emit("scoreReplace", row);
+    io.emit("ratingsUpdate", ratings);
     broadcastCounts();
-    return { ok: true, mode: "replaced" };
+    return { ok: true, mode: "replaced", ratingDelta };
   }
 
   return { ok: false, reason: "not_better" };
@@ -399,6 +525,7 @@ if (settings.tvCycleEnabled) setTvCycle(true, settings.tvCycleRateMs);
 app.get("/api/settings", (req, res) => res.json(getPublicSettings()));
 app.get("/api/scores", (req, res) => res.json(scores));
 app.get("/api/events", (req, res) => res.json(settings.events));
+app.get("/api/ratings", (req, res) => res.json(ratings));
 
 app.get("/api/attempts", (req, res) => {
   const q = String(req.query.q || "").trim().toLowerCase();
@@ -427,6 +554,7 @@ app.get("/api/attempts", (req, res) => {
 io.on("connection", (socket) => {
   socket.emit("loadScores", scores);
   socket.emit("settingsUpdate", getPublicSettings());
+  socket.emit("ratingsUpdate", ratings);
   broadcastCounts();
 
   socket.on("newScore", (data) => {
@@ -537,6 +665,111 @@ io.on("connection", (socket) => {
     if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "deleteScore", reason: "denied" });
     const removed = deleteLeaderboardRowById(String(id || ""));
     socket.emit("adminResult", { ok: true, action: "deleteScore", removed });
+  });
+
+  // Lecturer mode & privacy
+  socket.on("adminLecturerMode", ({ pin, patch }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "lecturerMode", reason: "denied" });
+
+    if (typeof patch?.lecturerMode === "boolean") settings.lecturerMode = patch.lecturerMode;
+    if (typeof patch?.privacy?.nameMode === "string") {
+      settings.privacy ||= { nameMode: "FULL", hideCourse: false };
+      settings.privacy.nameMode = patch.privacy.nameMode;
+    }
+    if (typeof patch?.privacy?.hideCourse === "boolean") {
+      settings.privacy ||= { nameMode: "FULL", hideCourse: false };
+      settings.privacy.hideCourse = patch.privacy.hideCourse;
+    }
+
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "lecturerMode" });
+  });
+
+  // Auto-scroll
+  socket.on("adminAutoScroll", ({ pin, enabled, rateMs, pauseMs }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "autoScroll", reason: "denied" });
+
+    settings.autoScroll = !!enabled;
+    if (Number.isFinite(rateMs) && rateMs > 0) settings.autoScrollRateMs = rateMs;
+    if (Number.isFinite(pauseMs) && pauseMs > 0) settings.autoScrollPauseMs = pauseMs;
+
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "autoScroll" });
+  });
+
+  // Spotlight
+  socket.on("adminSpotlight", ({ pin, enabled, rateMs, mode }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "spotlight", reason: "denied" });
+
+    settings.spotlight = !!enabled;
+    if (Number.isFinite(rateMs) && rateMs > 0) settings.spotlightRateMs = rateMs;
+    if (["recent", "random", "improved"].includes(mode)) settings.spotlightMode = mode;
+
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "spotlight" });
+  });
+
+  // Presets
+  socket.on("adminPreset", ({ pin, preset }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "preset", reason: "denied" });
+
+    const PRESETS = {
+      openDay: {
+        lecturerMode: true,
+        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
+        autoScroll: true,
+        spotlight: true,
+        demoEnabled: false
+      },
+      tournament: {
+        lecturerMode: false,
+        privacy: { nameMode: "FULL", hideCourse: false },
+        autoScroll: true,
+        spotlight: false,
+        demoEnabled: false
+      },
+      teaching: {
+        lecturerMode: true,
+        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
+        autoScroll: false,
+        spotlight: true,
+        demoEnabled: false
+      },
+      marketing: {
+        lecturerMode: true,
+        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
+        autoScroll: true,
+        spotlight: true,
+        demoEnabled: true
+      }
+    };
+
+    const presetConfig = PRESETS[preset];
+    if (!presetConfig) {
+      return socket.emit("adminResult", { ok: false, action: "preset", reason: "invalid_preset" });
+    }
+
+    // Apply preset
+    if (typeof presetConfig.lecturerMode === "boolean") settings.lecturerMode = presetConfig.lecturerMode;
+    if (presetConfig.privacy) {
+      settings.privacy = { ...settings.privacy, ...presetConfig.privacy };
+    }
+    if (typeof presetConfig.autoScroll === "boolean") settings.autoScroll = presetConfig.autoScroll;
+    if (typeof presetConfig.spotlight === "boolean") settings.spotlight = presetConfig.spotlight;
+    if (typeof presetConfig.demoEnabled === "boolean") {
+      if (presetConfig.demoEnabled && !settings.demoEnabled) {
+        setDemo(true, settings.demoRateMs, true);
+      } else if (!presetConfig.demoEnabled && settings.demoEnabled) {
+        setDemo(false);
+      }
+    }
+
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "preset", preset });
   });
 });
 

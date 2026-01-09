@@ -149,6 +149,7 @@
                 <tr>
                   <th class="text-left px-5 py-4 w-16">#</th>
                   <th class="text-left px-5 py-4">Driver</th>
+                  <th class="text-left px-5 py-4 w-40">Rating</th>
                   <th class="text-left px-5 py-4 w-36">Time</th>
                   <th class="text-left px-5 py-4 w-36">Game</th>
                   <th class="text-left px-5 py-4">Track</th>
@@ -242,6 +243,7 @@
   // Data
   let scores = [];
   let attempts = [];
+  let ratings = {};
   let settings = { events: [], bestPerDriver: true, fullscreen: { eventId: "", game: "" } };
 
   let activeGame = ""; // "" = Mixed
@@ -317,6 +319,28 @@
     return evt?.name || "Event";
   }
 
+  function getRatingKey(game, track, first, last) {
+    return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+  }
+
+  function getRatingDisplay(s) {
+    const key = getRatingKey(s.game, s.track, s.first, s.last);
+    const rating = ratings[key];
+    if (!rating) return "— ";
+    const dir = rating.lastChange > 0 ? "↑" : rating.lastChange < 0 ? "↓" : "";
+    return `${rating.rating} ${dir}${Math.abs(rating.lastChange)}`.trim();
+  }
+
+  function normalizeName(first, last, cohort) {
+    const nameMode = settings.privacy?.nameMode || "FULL";
+    if (settings.lecturerMode) {
+      if (cohort === "Guest") return "Guest";
+      if (nameMode === "FIRST_INITIAL") return `${first.charAt(0)}. ${last}`;
+      if (nameMode === "FIRST_LAST_INITIAL") return `${first} ${last.charAt(0)}.`;
+    }
+    return `${first} ${last}`;
+  }
+
   function passesFiltersCommon(item) {
     const qq = q.value.trim().toLowerCase();
     const ev = eventSel.value; // "" = all events
@@ -368,10 +392,12 @@
     lbRows.innerHTML = view.map((s, i) => {
       const rank = i + 1;
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
+      const displayName = normalizeName(s.first, s.last, s.cohort);
       return `
         <tr class="${pulse} hover:bg-zinc-950/30">
           <td class="px-5 py-4 text-zinc-300 font-semibold">${rank}</td>
-          <td class="px-5 py-4 text-white font-medium">${escapeHtml(s.first)} ${escapeHtml(s.last)}</td>
+          <td class="px-5 py-4 text-white font-medium">${escapeHtml(displayName)}</td>
+          <td class="px-5 py-4 text-amber-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(s.time)}</td>
           <td class="px-5 py-4 text-zinc-200">${escapeHtml(s.game)}</td>
           <td class="px-5 py-4 text-zinc-100">${escapeHtml(s.track)}</td>
@@ -392,10 +418,11 @@
 
     attRows.innerHTML = view.map((a) => {
       const when = new Date(a.createdAt).toLocaleString("en-GB", { year:"2-digit", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+      const displayName = normalizeName(a.first, a.last, a.cohort);
       return `
         <tr class="hover:bg-zinc-950/30">
           <td class="px-5 py-4 text-zinc-300">${escapeHtml(when)}</td>
-          <td class="px-5 py-4 text-white font-medium">${escapeHtml(a.first)} ${escapeHtml(a.last)}</td>
+          <td class="px-5 py-4 text-white font-medium">${escapeHtml(displayName)}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(a.time)}</td>
           <td class="px-5 py-4 text-zinc-200">${escapeHtml(a.game)}</td>
           <td class="px-5 py-4 text-zinc-100">${escapeHtml(a.track)}</td>
@@ -423,6 +450,11 @@
   // Socket events
   socket.on("loadScores", (existing) => {
     scores = Array.isArray(existing) ? existing : [];
+    render();
+  });
+
+  socket.on("ratingsUpdate", (r) => {
+    ratings = r || {};
     render();
   });
 

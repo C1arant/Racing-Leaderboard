@@ -124,6 +124,7 @@
               <tr>
                 <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[7rem]">#</th>
                 <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Driver</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[12rem]">Rating</th>
                 <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[16rem]">Time</th>
                 <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem] hidden md:table-cell">Game</th>
                 <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
@@ -172,6 +173,7 @@
 
   let scores = [];
   let settings = { events: [], fullscreen: { eventId: "", game: "" }, bestPerDriver: true };
+  let ratings = {};
   let pulseIds = new Map();
 
   function escapeHtml(s) {
@@ -204,6 +206,28 @@
     return evt?.name || "Event";
   }
 
+  function getRatingKey(game, track, first, last) {
+    return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+  }
+
+  function getRatingDisplay(s) {
+    const key = getRatingKey(s.game, s.track, s.first, s.last);
+    const rating = ratings[key];
+    if (!rating) return "— ";
+    const dir = rating.lastChange > 0 ? "↑" : rating.lastChange < 0 ? "↓" : "";
+    return `${rating.rating} ${dir}${Math.abs(rating.lastChange)}`.trim();
+  }
+
+  function normalizeName(first, last) {
+    const nameMode = settings.privacy?.nameMode || "FULL";
+    if (settings.lecturerMode) {
+      if (settings.cohort === "Guest") return "Guest";
+      if (nameMode === "FIRST_INITIAL") return `${first.charAt(0)}. ${last}`;
+      if (nameMode === "FIRST_LAST_INITIAL") return `${first} ${last.charAt(0)}.`;
+    }
+    return `${first} ${last}`;
+  }
+
   function setPodium(rank, s) {
     const id = rank === 1 ? "p1" : rank === 2 ? "p2" : "p3";
     if (!s) {
@@ -213,7 +237,8 @@
       P[`${id}_meta`].textContent = "—";
       return;
     }
-    P[`${id}_driver`].textContent = `${s.first} ${s.last}`.trim();
+    const displayName = normalizeName(s.first, s.last);
+    P[`${id}_driver`].textContent = displayName;
     P[`${id}_time`].textContent = s.time || "—";
     P[`${id}_detail`].textContent = `${s.game} • ${s.track} • ${s.car || "—"}`;
     P[`${id}_meta`].textContent = `${s.cohort || "Guest"} • ${s.course || "—"}`;
@@ -226,6 +251,116 @@
     if (eventId && s.eventId !== eventId) return false;
     if (game && s.game !== game) return false;
     return true;
+  }
+
+  // Auto-scroll state
+  let autoScrollActive = false;
+  let autoScrollInterval = null;
+  let lastLapTime = Date.now();
+
+  function startAutoScroll() {
+    if (autoScrollActive || !settings.autoScroll) return;
+    
+    autoScrollActive = true;
+    const tableBody = rows.closest("table");
+    if (!tableBody) return;
+
+    const scrollContainer = tableBody.closest(".overflow-hidden");
+    if (!scrollContainer) return;
+
+    let scrollDirection = 1; // 1 = down, -1 = up
+    
+    const doScroll = () => {
+      if (Date.now() - lastLapTime < 15000) {
+        // Recent lap activity, pause scrolling
+        scrollContainer.scrollTop = 0;
+        return;
+      }
+
+      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
+      const currentScroll = scrollContainer.scrollTop;
+      const step = 2;
+
+      if (scrollDirection === 1) {
+        scrollContainer.scrollTop += step;
+        if (currentScroll >= maxScroll - 5) {
+          scrollDirection = -1;
+          autoScrollInterval && clearTimeout(autoScrollInterval);
+          autoScrollInterval = setTimeout(doScroll, settings.autoScrollPauseMs || 2000);
+          return;
+        }
+      } else {
+        scrollContainer.scrollTop -= step;
+        if (currentScroll <= 5) {
+          scrollDirection = 1;
+        }
+      }
+
+      autoScrollInterval && clearTimeout(autoScrollInterval);
+      autoScrollInterval = setTimeout(doScroll, 50);
+    };
+
+    autoScrollInterval && clearTimeout(autoScrollInterval);
+    autoScrollInterval = setTimeout(doScroll, settings.autoScrollRateMs || 15000);
+  }
+
+  function stopAutoScroll() {
+    autoScrollActive = false;
+    if (autoScrollInterval) {
+      clearTimeout(autoScrollInterval);
+      autoScrollInterval = null;
+    }
+  }
+
+  // Spotlight state
+  let spotlightActive = false;
+  let spotlightInterval = null;
+  let currentSpotlight = null;
+
+  function startSpotlight() {
+    if (spotlightActive || !settings.spotlight) return;
+    spotlightActive = true;
+
+    const doSpotlight = () => {
+      let list = scores.filter(passesPinnedFilters);
+      list.sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
+
+      if (list.length === 0) {
+        currentSpotlight = null;
+        render();
+        spotlightInterval && clearTimeout(spotlightInterval);
+        spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
+        return;
+      }
+
+      if (settings.spotlightMode === "recent") {
+        currentSpotlight = list[0];
+      } else if (settings.spotlightMode === "random") {
+        const top20 = list.slice(0, 20);
+        currentSpotlight = top20[Math.floor(Math.random() * top20.length)];
+      } else if (settings.spotlightMode === "improved") {
+        // For now, use random; in future could track improvement delta
+        currentSpotlight = list[Math.floor(Math.random() * Math.min(5, list.length))];
+      }
+
+      render();
+
+      spotlightInterval && clearTimeout(spotlightInterval);
+      spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
+    };
+
+    spotlightInterval && clearTimeout(spotlightInterval);
+    spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
+  }
+
+  function stopSpotlight() {
+    spotlightActive = false;
+    currentSpotlight = null;
+    if (spotlightInterval) {
+      clearTimeout(spotlightInterval);
+      spotlightInterval = null;
+    }
+    render();
   }
 
   function render() {
@@ -251,11 +386,15 @@
       const rank = i + 1;
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
       const tag = `${escapeHtml(s.cohort || "Guest")} • ${escapeHtml(s.course || "—")}`;
+      const isSpotlight = currentSpotlight && s.id === currentSpotlight.id;
+      const spotlightClass = isSpotlight ? " ring-4 ring-amber-500/70 bg-amber-500/10" : (spotlightActive && currentSpotlight ? " opacity-40" : "");
+      const displayName = normalizeName(s.first, s.last);
 
       return `
-        <tr class="${pulse} hover:bg-zinc-950/25">
+        <tr class="${pulse}${spotlightClass} hover:bg-zinc-950/25 transition">
           <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 font-semibold t-rank">${rank}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-semibold">${escapeHtml(s.first)} ${escapeHtml(s.last)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-semibold">${escapeHtml(displayName)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-amber-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-extrabold tracking-tight t-time">${escapeHtml(s.time)}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-200 hidden md:table-cell">${escapeHtml(s.game)}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-100">${escapeHtml(s.track)}</td>
@@ -273,13 +412,28 @@
     render();
   });
 
+  socket.on("ratingsUpdate", (r) => {
+    ratings = r || {};
+    render();
+  });
+
   socket.on("settingsUpdate", (s) => {
     settings = s || settings;
+
+    // Manage auto-scroll
+    if (settings.autoScroll) startAutoScroll();
+    else stopAutoScroll();
+
+    // Manage spotlight
+    if (settings.spotlight) startSpotlight();
+    else stopSpotlight();
+
     render();
   });
 
   socket.on("scoreUpdate", (row) => {
     scores.push(row);
+    lastLapTime = Date.now();
     pulseIds.set(row.id, Date.now() + 1500);
     render();
   });
@@ -287,6 +441,7 @@
   socket.on("scoreReplace", (row) => {
     const idx = scores.findIndex(x => x.id === row.id);
     if (idx !== -1) scores[idx] = row; else scores.push(row);
+    lastLapTime = Date.now();
     pulseIds.set(row.id, Date.now() + 1500);
     render();
   });

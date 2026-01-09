@@ -1,7 +1,7 @@
 {
   "eventName": "Open Practice",
   "bestPerDriver": true,
-  "tvCycleEnabled": false,
+  "tvCycleEnabled": true,
   "tvCycleRateMs": 15000,
   "demoEnabled": false,
   "demoRateMs": 4000,
@@ -21,6 +21,19 @@
   ],
   "fullscreen": {
     "eventId": "evt_demo",
-    "game": "Assetto Corsa"
-  }
+    "game": "Assetto Corsa",
+    "useTvCycle": true,
+    "followLiveEvent": true
+  },
+  "lecturerMode": true,
+  "privacy": {
+    "nameMode": "FULL",
+    "hideCourse": false
+  },
+  "autoScroll": false,
+  "autoScrollRateMs": 15000,
+  "autoScrollPauseMs": 2000,
+  "spotlight": true,
+  "spotlightRateMs": 10000,
+  "spotlightMode": "recent"
 }
