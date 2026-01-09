@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fullscreen Leaderboard</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    /* TV-safe scaling */
+    :root{
+      --pad: clamp(12px, 1.4vmin, 28px);
+
+      --title: clamp(22px, 2.6vw, 54px);
+      --sub:   clamp(12px, 1.1vw, 20px);
+
+      --cardTitle: clamp(14px, 1.2vw, 22px);
+      --driver:    clamp(16px, 1.35vw, 26px);
+      --time:      clamp(22px, 2.1vw, 44px);
+
+      --table:     clamp(13px, 1.15vw, 22px);
+      --rank:      clamp(14px, 1.2vw, 24px);
+      --rowPadY:   clamp(10px, 1.2vmin, 18px);
+    }
+
+    .t-title{ font-size: var(--title); }
+    .t-sub{ font-size: var(--sub); }
+    .t-cardTitle{ font-size: var(--cardTitle); }
+    .t-driver{ font-size: var(--driver); }
+    .t-time{ font-size: var(--time); }
+    .t-table{ font-size: var(--table); }
+    .t-rank{ font-size: var(--rank); }
+
+    /* PB pulse */
+    .pulse-new { animation: pulseNew 1.15s ease-out 1; }
+    @keyframes pulseNew {
+      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.26); background-color: rgba(16,185,129,0.06); }
+      60%  { box-shadow: 0 0 0 26px rgba(16,185,129,0.00); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.00); background-color: transparent; }
+    }
+
+    /* Keep it kiosk-friendly */
+    body { cursor: none; }
+    * { user-select: none; -webkit-user-select: none; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
+  <div class="h-screen w-screen p-[var(--pad)] flex flex-col gap-[var(--pad)]">
+    <!-- Header -->
+    <div class="flex items-end justify-between gap-4">
+      <div class="min-w-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <h1 class="t-title font-extrabold tracking-tight truncate">🏁 Leaderboard</h1>
+          <span class="t-sub inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2 text-zinc-200">
+            Event: <span id="eventName" class="font-semibold">Open Practice</span>
+          </span>
+          <span id="gamePill" class="t-sub hidden md:inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2 text-zinc-200">
+            View: <span id="gameLabel" class="font-semibold">Mixed</span>
+          </span>
+        </div>
+        <p class="t-sub text-zinc-400 mt-2">Live updates • fastest first • podium + top 20</p>
+      </div>
+
+      <div class="flex items-center gap-3 t-sub">
+        <span class="inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2">
+          <span id="liveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span id="liveLabel">Live</span>
+        </span>
+
+        <span id="cycleBadge" class="hidden inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2 text-zinc-300">
+          TV Cycle
+        </span>
+      </div>
+    </div>
+
+    <!-- Podium: top centre -->
+    <div class="w-full flex justify-center">
+      <div class="w-full max-w-[1600px] grid grid-cols-12 gap-[var(--pad)]">
+        <!-- P2 -->
+        <div class="col-span-12 md:col-span-4 order-2 md:order-1">
+          <div class="h-full rounded-[22px] border border-zinc-200/25 bg-gradient-to-r from-zinc-200/10 to-transparent p-[var(--pad)]">
+            <div class="flex items-center justify-between">
+              <div class="t-cardTitle font-semibold">🥈 P2</div>
+              <div class="t-sub text-zinc-300" id="p2_meta">—</div>
+            </div>
+            <div class="mt-2">
+              <div class="t-driver font-semibold truncate" id="p2_driver">—</div>
+              <div class="t-time font-extrabold tracking-tight" id="p2_time">—</div>
+              <div class="t-sub text-zinc-300 mt-2 truncate" id="p2_detail">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- P1 -->
+        <div class="col-span-12 md:col-span-4 order-1 md:order-2">
+          <div class="h-full rounded-[22px] border border-amber-500/35 bg-gradient-to-r from-amber-500/18 to-transparent p-[var(--pad)]">
+            <div class="flex items-center justify-between">
+              <div class="t-cardTitle font-semibold">🥇 P1</div>
+              <div class="t-sub text-zinc-300" id="p1_meta">—</div>
+            </div>
+            <div class="mt-2">
+              <div class="t-driver font-semibold truncate" id="p1_driver">—</div>
+              <div class="t-time font-extrabold tracking-tight" id="p1_time">—</div>
+              <div class="t-sub text-zinc-300 mt-2 truncate" id="p1_detail">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- P3 -->
+        <div class="col-span-12 md:col-span-4 order-3">
+          <div class="h-full rounded-[22px] border border-orange-300/25 bg-gradient-to-r from-orange-500/12 to-transparent p-[var(--pad)]">
+            <div class="flex items-center justify-between">
+              <div class="t-cardTitle font-semibold">🥉 P3</div>
+              <div class="t-sub text-zinc-300" id="p3_meta">—</div>
+            </div>
+            <div class="mt-2">
+              <div class="t-driver font-semibold truncate" id="p3_driver">—</div>
+              <div class="t-time font-extrabold tracking-tight" id="p3_time">—</div>
+              <div class="t-sub text-zinc-300 mt-2 truncate" id="p3_detail">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table (fills remaining space) -->
+    <div class="flex-1 min-h-0 w-full flex justify-center">
+      <div class="w-full max-w-[1900px] rounded-[22px] border border-zinc-800 bg-zinc-900/60 overflow-hidden flex flex-col">
+        <div class="px-[var(--pad)] py-[calc(var(--pad)*0.75)] bg-zinc-950/55 flex items-center justify-between">
+          <div class="t-table font-semibold">Top 20</div>
+          <div class="t-sub text-zinc-400"><span id="count">0 entries</span></div>
+        </div>
+
+        <div class="flex-1 min-h-0 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-zinc-950/45 text-zinc-300 t-sub">
+              <tr>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[7rem]">#</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Driver</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[16rem]">Time</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem] hidden md:table-cell">Game</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] hidden lg:table-cell">Car</th>
+                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[18rem] hidden xl:table-cell">Tag</th>
+              </tr>
+            </thead>
+            <tbody id="rows" class="divide-y divide-zinc-800 t-table"></tbody>
+          </table>
+        </div>
+
+        <div class="px-[var(--pad)] py-[calc(var(--pad)*0.6)] bg-zinc-950/40 t-sub text-zinc-400 flex justify-between">
+          <span>Auto-updating</span>
+          <span id="footerNote">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const socket = io();
+
+  const rows = document.getElementById("rows");
+  const count = document.getElementById("count");
+  const footerNote = document.getElementById("footerNote");
+
+  const eventNameEl = document.getElementById("eventName");
+  const cycleBadge = document.getElementById("cycleBadge");
+  const gamePill = document.getElementById("gamePill");
+  const gameLabel = document.getElementById("gameLabel");
+
+  const liveLabel = document.getElementById("liveLabel");
+  const liveDot = document.getElementById("liveDot");
+
+  const P = {
+    p1_driver: document.getElementById("p1_driver"),
+    p1_time: document.getElementById("p1_time"),
+    p1_detail: document.getElementById("p1_detail"),
+    p1_meta: document.getElementById("p1_meta"),
+    p2_driver: document.getElementById("p2_driver"),
+    p2_time: document.getElementById("p2_time"),
+    p2_detail: document.getElementById("p2_detail"),
+    p2_meta: document.getElementById("p2_meta"),
+    p3_driver: document.getElementById("p3_driver"),
+    p3_time: document.getElementById("p3_time"),
+    p3_detail: document.getElementById("p3_detail"),
+    p3_meta: document.getElementById("p3_meta"),
+  };
+
+  let scores = [];
+  let settings = { eventName: "Open Practice", bestPerDriver: true, tvCycleEnabled: false };
+  let activeGame = ""; // "" = Mixed
+  const pulseIds = new Map();
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+  }
+
+  function timeToMs(t) {
+    const str = String(t).trim();
+    if (/^\d+:\d{2}\.\d{3}$/.test(str)) {
+      const [m, rest] = str.split(":");
+      const [s, ms] = rest.split(".");
+      return (parseInt(m,10) * 60 + parseInt(s,10)) * 1000 + parseInt(ms,10);
+    }
+    if (/^\d+\.\d{3}$/.test(str)) {
+      const [s, ms] = str.split(".");
+      return parseInt(s,10) * 1000 + parseInt(ms,10);
+    }
+    return Infinity;
+  }
+
+  function passesFilters(score) {
+    if (activeGame && score.game !== activeGame) return false;
+    if (settings?.eventName && score.event && score.event !== settings.eventName) return false;
+    return true;
+  }
+
+  function bestPerDriver(list) {
+    // safety net (server already upserts)
+    const map = new Map();
+    for (const s of list) {
+      const key = `${(s.first||"").toLowerCase()}|${(s.last||"").toLowerCase()}|${s.game}|${(s.track||"").toLowerCase()}|${s.event||""}`;
+      const existing = map.get(key);
+      if (!existing || timeToMs(s.time) < timeToMs(existing.time)) map.set(key, s);
+    }
+    return Array.from(map.values());
+  }
+
+  function setPodium(rank, s) {
+    const id = rank === 1 ? "p1" : rank === 2 ? "p2" : "p3";
+    if (!s) {
+      P[`${id}_driver`].textContent = "—";
+      P[`${id}_time`].textContent = "—";
+      P[`${id}_detail`].textContent = "—";
+      P[`${id}_meta`].textContent = "—";
+      return;
+    }
+    P[`${id}_driver`].textContent = `${s.first} ${s.last}`.trim();
+    P[`${id}_time`].textContent = s.time || "—";
+    P[`${id}_detail`].textContent = `${s.game} • ${s.track} • ${s.car || "—"}`;
+    P[`${id}_meta`].textContent = `${s.cohort || "Guest"} • ${s.course || "—"}`;
+  }
+
+  function cleanupPulse() {
+    const now = Date.now();
+    for (const [id, exp] of pulseIds.entries()) if (exp <= now) pulseIds.delete(id);
+  }
+
+  function render() {
+    cleanupPulse();
+
+    let filtered = scores.filter(passesFilters);
+    if (settings.bestPerDriver) filtered = bestPerDriver(filtered);
+    filtered.sort((a,b) => timeToMs(a.time) - timeToMs(b.time));
+
+    setPodium(1, filtered[0]);
+    setPodium(2, filtered[1]);
+    setPodium(3, filtered[2]);
+
+    const view = filtered.slice(0, 20);
+
+    rows.innerHTML = view.map((s, i) => {
+      const rank = i + 1;
+      const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
+      const driver = `${escapeHtml(s.first)} ${escapeHtml(s.last)}`.trim();
+      const tag = `${escapeHtml(s.cohort || "Guest")} • ${escapeHtml(s.course || "—")}`;
+
+      return `
+        <tr class="${pulse} hover:bg-zinc-950/25">
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 font-semibold t-rank">${rank}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-semibold">${driver}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-extrabold tracking-tight t-time">${escapeHtml(s.time)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-200 hidden md:table-cell">${escapeHtml(s.game)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-100">${escapeHtml(s.track)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 hidden lg:table-cell">${escapeHtml(s.car || "—")}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 hidden xl:table-cell">${tag}</td>
+        </tr>
+      `;
+    }).join("");
+
+    count.textContent = `${filtered.length} entr${filtered.length === 1 ? "y" : "ies"}`;
+    eventNameEl.textContent = settings.eventName || "Open Practice";
+
+    const viewName = activeGame ? activeGame : "Mixed";
+    gameLabel.textContent = viewName;
+    gamePill.classList.toggle("hidden", !settings.tvCycleEnabled);
+
+    footerNote.textContent = settings.tvCycleEnabled
+      ? `TV cycle active • ${viewName}`
+      : `View: ${viewName}`;
+  }
+
+  // Socket events
+  socket.on("loadScores", (existing) => {
+    scores = Array.isArray(existing) ? existing : [];
+    render();
+  });
+
+  socket.on("settingsUpdate", (s) => {
+    settings = s || settings;
+    cycleBadge.classList.toggle("hidden", !settings.tvCycleEnabled);
+    render();
+  });
+
+  socket.on("scoreUpdate", (score) => {
+    scores.push(score);
+    if (score?.id) pulseIds.set(score.id, Date.now() + 1500);
+    render();
+  });
+
+  socket.on("scoreReplace", (score) => {
+    const idx = scores.findIndex(s => s.id === score.id);
+    if (idx !== -1) scores[idx] = score;
+    else scores.push(score);
+    if (score?.id) pulseIds.set(score.id, Date.now() + 1500);
+    render();
+  });
+
+  socket.on("deleteScore", ({ id }) => {
+    scores = scores.filter(s => s.id !== id);
+    render();
+  });
+
+  socket.on("clearAll", () => { scores = []; render(); });
+
+  socket.on("clearEvent", ({ eventName }) => {
+    scores = scores.filter(s => s.event !== eventName);
+    render();
+  });
+
+  // TV cycle: Mixed -> Assetto -> F1
+  socket.on("tvCycleStep", ({ game }) => {
+    activeGame = game ?? "";
+    render();
+  });
+
+  // Optional keyboard override (1=Mixed,2=AC,3=F1)
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "1") { activeGame = ""; render(); }
+    if (e.key === "2") { activeGame = "Assetto Corsa"; render(); }
+    if (e.key === "3") { activeGame = "F1 25"; render(); }
+  });
+
+  // Connection indicator
+  socket.on("disconnect", () => {
+    liveLabel.textContent = "Disconnected";
+    liveDot.classList.remove("bg-emerald-500");
+    liveDot.classList.add("bg-red-500");
+  });
+
+  socket.on("connect", () => {
+    liveLabel.textContent = "Live";
+    liveDot.classList.remove("bg-red-500");
+    liveDot.classList.add("bg-emerald-500");
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+services:
+  scoreboard:
+    build: .
+    container_name: racing-scoreboard
+    ports:
+      - "3000:3000"
+    restart: unless-stopped

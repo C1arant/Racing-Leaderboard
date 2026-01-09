@@ -1,0 +1,8 @@
+{
+  "eventName": "Open Practice",
+  "bestPerDriver": true,
+  "tvCycleEnabled": false,
+  "tvCycleRateMs": 15000,
+  "demoEnabled": false,
+  "demoRateMs": 4000
+}

@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Leaderboard Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
+  <div class="max-w-6xl mx-auto px-4 py-6">
+    <div class="flex items-end justify-between mb-5">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">Control Desk</h1>
+        <p class="text-zinc-400">Run events, manage entries, keep the board clean.</p>
+      </div>
+      <a href="/" class="text-sm underline text-zinc-300 hover:text-white">View Display →</a>
+    </div>
+
+    <div id="toast" class="hidden mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm"></div>
+
+    <div class="grid grid-cols-12 gap-4">
+      <!-- Left: security + event + modes -->
+      <div class="col-span-12 lg:col-span-4 space-y-4">
+        <!-- Security -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+          <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-lg">Security</h2>
+            <span id="pinStatus" class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-400">PIN: unknown</span>
+          </div>
+
+          <label class="text-xs text-zinc-400 mt-3 block">Admin PIN</label>
+          <div class="mt-1 flex gap-2">
+            <input id="pin" type="password" placeholder="Enter PIN"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            <button id="savePin" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Save
+            </button>
+          </div>
+          <p class="text-xs text-zinc-500 mt-2">If actions get denied, your PIN is wrong.</p>
+        </div>
+
+        <!-- Event -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="font-semibold text-lg">Event</h2>
+            <span class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
+              Current: <span id="currentEvent">—</span>
+            </span>
+          </div>
+
+          <div>
+            <label class="text-xs text-zinc-400">Event name</label>
+            <input id="eventName" placeholder="e.g. Open Day Time Trial"
+              class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+          </div>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Best per driver</p>
+              <p class="text-xs text-zinc-500">Display mode (recommended).</p>
+            </div>
+            <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              ON
+            </button>
+          </div>
+
+          <button id="applyEvent" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+            Apply Settings
+          </button>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button id="clearEvent" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
+              Clear Event
+            </button>
+            <button id="clearAll" class="px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
+              Clear All
+            </button>
+          </div>
+
+          <div class="pt-2 border-t border-zinc-800">
+            <p class="text-xs text-zinc-400 mb-2">Entries per event</p>
+            <div id="eventCounts" class="space-y-1 text-sm text-zinc-300"></div>
+          </div>
+        </div>
+
+        <!-- Modes -->
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+          <h2 class="font-semibold text-lg">Show mode</h2>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">Demo mode</p>
+              <p class="text-xs text-zinc-500">Auto-fill with sample data.</p>
+            </div>
+            <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">
+              Off
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-xs text-zinc-400">Demo rate (ms)</label>
+              <input id="demoRate" value="4000"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+            <div class="flex items-end">
+              <button id="demoSeed" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+                Seed 18
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <div>
+              <p class="font-semibold">TV auto-cycle</p>
+              <p class="text-xs text-zinc-500">Mixed → Assetto → F1.</p>
+            </div>
+            <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">
+              Off
+            </button>
+          </div>
+
+          <div>
+            <label class="text-xs text-zinc-400">Cycle rate (ms)</label>
+            <input id="tvRate" value="15000"
+              class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle: add lap -->
+      <div class="col-span-12 lg:col-span-4">
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+          <h2 class="font-semibold text-lg mb-3">Add lap</h2>
+
+          <form id="scoreForm" class="space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-zinc-400">First</label>
+                <input id="first" required class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400">Last</label>
+                <input id="last" required class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Lap time (m:ss.mmm)</label>
+              <input id="time" required placeholder="1:23.456"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-zinc-400">Game</label>
+                <select id="game" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                  <option>Assetto Corsa</option>
+                  <option>F1 25</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400">Day</label>
+                <input id="day" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Track</label>
+              <input id="track" required
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Car</label>
+              <input id="car"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-zinc-400">Cohort tag</label>
+                <select id="cohort" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                  <option>Guest</option>
+                  <option>Staff</option>
+                  <option>Y1</option>
+                  <option>Y2</option>
+                  <option>Y3</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400">Course</label>
+                <input id="course" placeholder="Games / Computing / Animation"
+                  class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+            </div>
+
+            <button class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Submit
+            </button>
+
+            <p id="submitHint" class="text-xs text-zinc-500"></p>
+          </form>
+        </div>
+      </div>
+
+      <!-- Right: entry list -->
+      <div class="col-span-12 lg:col-span-4">
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-lg">Entries (current event)</h2>
+            <input id="search" placeholder="Search name/track…"
+              class="w-48 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+          </div>
+
+          <div id="entryList" class="space-y-2 max-h-[680px] overflow-auto pr-1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const socket = io();
+
+  // ---- toast ----
+  const toast = document.getElementById("toast");
+  function showToast(msg, ok=true) {
+    toast.textContent = msg;
+    toast.classList.remove("hidden");
+    toast.className = "mb-4 rounded-2xl border bg-zinc-900/60 px-4 py-3 text-sm " + (ok
+      ? "border-emerald-700/40 text-emerald-200"
+      : "border-red-700/40 text-red-200");
+    setTimeout(() => toast.classList.add("hidden"), 3500);
+  }
+
+  // ---- PIN ----
+  const PIN_KEY = "leaderboard_admin_pin";
+  const pinInput = document.getElementById("pin");
+  const savePin = document.getElementById("savePin");
+  const pinStatus = document.getElementById("pinStatus");
+  pinInput.value = localStorage.getItem(PIN_KEY) || "";
+
+  function getPin() { return (pinInput.value || "").trim(); }
+  function pingPin() { socket.emit("adminPing", { pin: getPin() }); }
+
+  savePin.addEventListener("click", () => {
+    localStorage.setItem(PIN_KEY, getPin());
+    pingPin();
+    showToast("PIN saved to this browser.", true);
+  });
+
+  socket.on("adminPingResult", ({ ok }) => {
+    pinStatus.textContent = ok ? "PIN: OK" : "PIN: WRONG";
+    pinStatus.className = ok
+      ? "text-xs px-2 py-1 rounded-full border border-emerald-700/40 bg-emerald-500/10 text-emerald-200"
+      : "text-xs px-2 py-1 rounded-full border border-red-700/40 bg-red-500/10 text-red-200";
+  });
+
+  // ---- settings ----
+  let settings = { eventName: "Open Practice", bestPerDriver: true, demoEnabled:false, demoRateMs:4000, tvCycleEnabled:false, tvCycleRateMs:15000 };
+
+  const eventName = document.getElementById("eventName");
+  const currentEvent = document.getElementById("currentEvent");
+  const bestToggle = document.getElementById("bestToggle");
+  const applyEvent = document.getElementById("applyEvent");
+  const clearEvent = document.getElementById("clearEvent");
+  const clearAll = document.getElementById("clearAll");
+
+  function refreshSettingsUI() {
+    eventName.value = settings.eventName || "Open Practice";
+    currentEvent.textContent = settings.eventName || "Open Practice";
+
+    bestToggle.textContent = settings.bestPerDriver ? "ON" : "OFF";
+    bestToggle.className = settings.bestPerDriver
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+  }
+
+  bestToggle.addEventListener("click", () => {
+    settings.bestPerDriver = !settings.bestPerDriver;
+    refreshSettingsUI();
+  });
+
+  applyEvent.addEventListener("click", () => {
+    socket.emit("adminUpdateSettings", {
+      pin: getPin(),
+      patch: { eventName: eventName.value, bestPerDriver: settings.bestPerDriver }
+    });
+  });
+
+  clearEvent.addEventListener("click", () => {
+    const ok = confirm(`Clear entries for event "${settings.eventName}"?`);
+    if (!ok) return;
+    socket.emit("adminClearEvent", { pin: getPin(), eventName: settings.eventName });
+  });
+
+  clearAll.addEventListener("click", () => {
+    const ok = confirm("Clear ALL entries (all events)?");
+    if (!ok) return;
+    socket.emit("adminClearAll", { pin: getPin() });
+  });
+
+  // ---- demo / tv ----
+  const demoToggle = document.getElementById("demoToggle");
+  const demoSeed = document.getElementById("demoSeed");
+  const demoRate = document.getElementById("demoRate");
+  const tvToggle = document.getElementById("tvToggle");
+  const tvRate = document.getElementById("tvRate");
+
+  function refreshModeButtons() {
+    demoRate.value = settings.demoRateMs ?? 4000;
+    demoToggle.textContent = settings.demoEnabled ? "On" : "Off";
+    demoToggle.className = settings.demoEnabled
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+
+    tvRate.value = settings.tvCycleRateMs ?? 15000;
+    tvToggle.textContent = settings.tvCycleEnabled ? "On" : "Off";
+    tvToggle.className = settings.tvCycleEnabled
+      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
+      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
+  }
+
+  demoToggle.addEventListener("click", () => {
+    socket.emit("adminDemo", { pin: getPin(), enabled: !settings.demoEnabled, seed:false, rateMs: Number(demoRate.value || 4000) });
+  });
+
+  demoSeed.addEventListener("click", (e) => {
+    e.preventDefault();
+    socket.emit("adminDemo", { pin: getPin(), enabled: true, seed:true, rateMs: Number(demoRate.value || 4000) });
+  });
+
+  tvToggle.addEventListener("click", () => {
+    socket.emit("adminTvCycle", { pin: getPin(), enabled: !settings.tvCycleEnabled, rateMs: Number(tvRate.value || 15000) });
+  });
+
+  // ---- add lap ----
+  const form = document.getElementById("scoreForm");
+  const submitHint = document.getElementById("submitHint");
+  const day = document.getElementById("day");
+
+  if (!day.value) {
+    const d = new Date();
+    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    day.value = days[d.getDay()];
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    socket.emit("newScore", {
+      first: document.getElementById("first").value.trim(),
+      last: document.getElementById("last").value.trim(),
+      time: document.getElementById("time").value.trim(),
+      game: document.getElementById("game").value,
+      day: document.getElementById("day").value.trim(),
+      track: document.getElementById("track").value.trim(),
+      car: document.getElementById("car").value.trim(),
+      cohort: document.getElementById("cohort").value,
+      course: document.getElementById("course").value.trim(),
+      event: settings.eventName,
+      createdAt: new Date().toISOString()
+    });
+  });
+
+  socket.on("submitResult", (r) => {
+    if (r?.ok) {
+      if (r.mode === "replaced") submitHint.textContent = "PB updated (replaced existing row).";
+      else submitHint.textContent = "Submitted (new entry).";
+
+      form.reset();
+
+      const d = new Date();
+      const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      document.getElementById("day").value = days[d.getDay()];
+    } else {
+      if (r?.reason === "duplicate") submitHint.textContent = "Ignored: duplicate spam.";
+      else if (r?.reason === "not_better") submitHint.textContent = "Ignored: not better than existing PB.";
+      else submitHint.textContent = "Rejected: invalid fields.";
+    }
+  });
+
+  // ---- event counts ----
+  const eventCounts = document.getElementById("eventCounts");
+  socket.on("eventCounts", (map) => {
+    const entries = Object.entries(map || {}).sort((a,b) => b[1]-a[1]);
+    eventCounts.innerHTML = entries.length
+      ? entries.map(([name, n]) => `
+          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+            <span class="truncate">${escapeHtml(name)}</span>
+            <span class="text-zinc-400">${n}</span>
+          </div>
+        `).join("")
+      : `<div class="text-zinc-500 text-sm">No entries yet.</div>`;
+  });
+
+  // ---- entry list + delete ----
+  const entryList = document.getElementById("entryList");
+  const search = document.getElementById("search");
+  let allScores = [];
+
+  function escapeHtml(s) {
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function renderEntries() {
+    const q = (search.value || "").trim().toLowerCase();
+    const current = settings.eventName || "Open Practice";
+
+    const list = allScores
+      .filter(s => (s.event || "Open Practice") === current)
+      .filter(s => !q || `${s.first} ${s.last} ${s.track}`.toLowerCase().includes(q))
+      .slice()
+      .reverse()
+      .slice(0, 60);
+
+    entryList.innerHTML = list.map(s => `
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <div class="font-semibold">
+              ${escapeHtml(s.first)} ${escapeHtml(s.last)}
+              <span class="text-zinc-400 font-normal">(${escapeHtml(s.cohort)} • ${escapeHtml(s.course)})</span>
+            </div>
+            <div class="text-sm text-zinc-300">
+              ${escapeHtml(s.time)} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)} • ${escapeHtml(s.car || "—")}
+            </div>
+          </div>
+          <button data-del="${escapeHtml(s.id)}"
+            class="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
+            Delete
+          </button>
+        </div>
+      </div>
+    `).join("") || `<div class="text-zinc-500 text-sm">No entries for this event.</div>`;
+
+    entryList.querySelectorAll("button[data-del]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-del");
+        const ok = confirm("Delete this entry?");
+        if (!ok) return;
+        socket.emit("adminDeleteScore", { pin: getPin(), id });
+      });
+    });
+  }
+
+  search.addEventListener("input", renderEntries);
+
+  socket.on("loadScores", (existing) => {
+    allScores = Array.isArray(existing) ? existing : [];
+    renderEntries();
+    pingPin();
+  });
+
+  socket.on("scoreUpdate", (s) => {
+    allScores.push(s);
+    renderEntries();
+  });
+
+  socket.on("scoreReplace", (s) => {
+    const idx = allScores.findIndex(x => x.id === s.id);
+    if (idx !== -1) allScores[idx] = s;
+    else allScores.push(s);
+    renderEntries();
+  });
+
+  socket.on("deleteScore", ({ id }) => {
+    allScores = allScores.filter(s => s.id !== id);
+    renderEntries();
+  });
+
+  socket.on("clearAll", () => {
+    allScores = [];
+    renderEntries();
+  });
+
+  socket.on("clearEvent", ({ eventName }) => {
+    allScores = allScores.filter(s => s.event !== eventName);
+    renderEntries();
+  });
+
+  socket.on("settingsUpdate", (s) => {
+    settings = s || settings;
+    refreshSettingsUI();
+    refreshModeButtons();
+    renderEntries();
+  });
+
+  socket.on("adminResult", (r) => {
+    if (!r?.ok) {
+      showToast(`Denied. Wrong PIN (action: ${r.action}).`, false);
+      pingPin();
+      return;
+    }
+    if (r.action === "clearAll") showToast(`Cleared ALL entries (${r.removed}).`, true);
+    else if (r.action === "clearEvent") showToast(`Cleared event entries (${r.removed}).`, true);
+    else if (r.action === "deleteScore") showToast(`Deleted (${r.removed}).`, true);
+    else showToast(`OK: ${r.action}`, true);
+    pingPin();
+  });
+</script>
+</body>
+</html>
