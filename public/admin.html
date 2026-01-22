@@ -6,10 +6,29 @@
   <title>Leaderboard Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="/socket.io/socket.io.js"></script>
+
+  <style>
+    /* Subtle glass + nicer scrollbars */
+    .panel { backdrop-filter: blur(10px); }
+    .soft-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .soft-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 999px; }
+    .soft-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 999px; }
+    :focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,.10), 0 0 0 4px rgba(99,102,241,.25); border-radius: 12px; }
+
+    /* Nicer <details> styling */
+    details > summary { list-style: none; cursor: pointer; }
+    details > summary::-webkit-details-marker { display: none; }
+  </style>
 </head>
 
 <body class="min-h-screen bg-zinc-950 text-zinc-100">
-  <div class="max-w-6xl mx-auto px-4 py-6">
+  <!-- background glow -->
+  <div class="pointer-events-none fixed inset-0 -z-10">
+    <div class="absolute -top-48 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-indigo-500/10 blur-3xl"></div>
+    <div class="absolute -bottom-56 right-[-120px] h-[520px] w-[720px] rounded-full bg-amber-500/10 blur-3xl"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto px-4 py-6">
     <header class="flex items-center justify-between mb-6">
       <div class="min-w-0">
         <h1 class="text-3xl font-extrabold tracking-tight">Racing Leaderboard — Control Desk</h1>
@@ -25,316 +44,411 @@
     <div id="toast" class="hidden mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm"></div>
 
     <div class="grid grid-cols-12 gap-4">
-      <!-- Left -->
-      <div class="col-span-12 lg:col-span-4 space-y-4">
-        <!-- Security -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <!-- Left (Accordion Sidebar) -->
+      <div class="col-span-12 lg:col-span-4 space-y-4 lg:sticky lg:top-6 self-start">
+
+        <!-- Mini status -->
+        <div class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
           <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-lg">Security</h2>
+            <div>
+              <div class="text-xs text-zinc-400">System</div>
+              <div class="font-semibold">Admin Online</div>
+            </div>
+            <div class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-400">v1</div>
+          </div>
+          <div id="rigStatusMini" class="text-xs text-zinc-400 mt-2">Rig lastSeen: — • queued: —</div>
+        </div>
+
+        <!-- ACCORDION: Security -->
+        <details open class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-indigo-400/80"></div>
+              <h2 class="font-semibold text-lg">Security</h2>
+            </div>
             <span id="pinStatus" class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-400">PIN: unknown</span>
-          </div>
-
-          <label class="text-xs text-zinc-400 mt-3 block">Admin PIN</label>
-          <div class="mt-1 flex gap-2">
-            <input id="pin" type="password" placeholder="Enter PIN"
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            <button id="savePin" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Save
-            </button>
-          </div>
-        </div>
-
-        <!-- Events -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-lg">Events</h2>
-            <span class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
-              LIVE: <span id="liveEventName">—</span>
-            </span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2">
-            <input id="newEventName" placeholder="New event name"
-              class="col-span-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            <button id="createEvent" class="rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 px-3 py-2">
-              Create
-            </button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Set LIVE event</label>
+          </summary>
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70">
+            <label class="text-xs text-zinc-400 block">Admin PIN</label>
             <div class="mt-1 flex gap-2">
-              <select id="liveEventSelect" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
-              <button id="setLive" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Set</button>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Best per driver</p>
-              <p class="text-xs text-zinc-500">Recommended for clean boards.</p>
-            </div>
-            <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
-          </div>
-
-          <button id="applySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-            Apply Settings
-          </button>
-        </div>
-
-        <!-- Fullscreen pin -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Fullscreen (Pinned)</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Follow LIVE event</p>
-              <p class="text-xs text-zinc-500">If ON, fullscreen always shows the live event.</p>
-            </div>
-            <button id="followLiveToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Fullscreen event</label>
-            <select id="fsEventSelect" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Fullscreen game view</label>
-            <select id="fsGame" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-              <option value="">Mixed</option>
-              <option value="Assetto Corsa">Assetto Corsa</option>
-              <option value="F1 25">F1 25</option>
-            </select>
-          </div>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Allow TV cycle override</p>
-              <p class="text-xs text-zinc-500">Only if you want auto-rotation.</p>
-            </div>
-            <button id="tvOverrideToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <button id="applyFullscreen" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-            Apply Fullscreen Pin
-          </button>
-
-          <button id="resetPinnedEvent" class="w-full px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-            Reset Pinned Event Board (scores + attempts)
-          </button>
-        </div>
-
-        <!-- Rig Controls -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Rig Controls</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Enable rig submissions</p>
-              <p class="text-xs text-zinc-500">Allow rig PCs to POST laps using a shared `RIG_KEY`.</p>
-            </div>
-            <button id="rigToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Timed laps</label>
-              <input id="rigTimedLaps" type="number" min="1" value="3"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Out laps</label>
-              <input id="rigOutLaps" type="number" min="0" value="1"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-          </div>
-
-          <div class="mt-3 flex gap-2 items-center">
-            <input id="rigFlushFile" type="file" accept=".json" class="text-xs text-zinc-400" aria-label="Upload pending laps JSON" />
-            <button id="rigFlushBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Flush Pending</button>
-            <span id="rigFlushHint" class="text-xs text-zinc-500">Upload a `pending_laps.json` from a rig to import queued laps.</span>
-          </div>
-        </div>
-
-        <!-- Tools -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Presets</h2>
-          <p class="text-xs text-zinc-400">Quick-apply display modes for different scenarios.</p>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="presetOpenDay" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Open Day
-            </button>
-            <button id="presetTournament" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Tournament
-            </button>
-            <button id="presetTeaching" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Teaching
-            </button>
-            <button id="presetMarketing" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Marketing
-            </button>
-          </div>
-
-          <div class="border-t border-zinc-800 pt-3"></div>
-
-          <!-- Lecturer mode -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Lecturer Mode</p>
-              <p class="text-xs text-zinc-500">Hide last names, show tags.</p>
-            </div>
-            <button id="lecturerToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Name display mode</label>
-            <select id="nameMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-              <option value="FULL">Full name</option>
-              <option value="FIRST_INITIAL">First initial + last</option>
-              <option value="FIRST_LAST_INITIAL">First + last initial</option>
-            </select>
-          </div>
-
-          <!-- Auto-scroll -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
-            <div>
-              <p class="font-semibold">Auto-scroll (Fullscreen)</p>
-              <p class="text-xs text-zinc-500">Slow broadcast crawl.</p>
-            </div>
-            <button id="autoScrollToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Scroll rate (ms)</label>
-              <input id="autoScrollRate" value="15000" type="number" min="1000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Pause (ms)</label>
-              <input id="autoScrollPause" value="2000" type="number" min="500"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-          </div>
-
-          <!-- Spotlight -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
-            <div>
-              <p class="font-semibold">Spotlight Mode (Fullscreen)</p>
-              <p class="text-xs text-zinc-500">Highlight driver every N seconds.</p>
-            </div>
-            <button id="spotlightToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Spotlight rate (ms)</label>
-              <input id="spotlightRate" value="10000" type="number" min="2000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Mode</label>
-              <select id="spotlightMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-                <option value="recent">Recent attempt</option>
-                <option value="random">Random top 20</option>
-                <option value="improved">Most improved</option>
-              </select>
-            </div>
-          </div>
-
-          <button id="applyDisplaySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 mt-3">
-            Apply Display Settings
-          </button>
-        </div>
-
-        <!-- Tools -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Tools</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Demo mode</p>
-              <p class="text-xs text-zinc-500">Auto-add demo attempts into LIVE event.</p>
-            </div>
-            <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Demo rate (ms)</label>
-              <input id="demoRate" value="4000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div class="flex items-end">
-              <button id="demoSeed" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-                Seed 18
+              <input id="pin" type="password" placeholder="Enter PIN"
+                class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              <button id="savePin" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+                Save
               </button>
             </div>
           </div>
+        </details>
 
-          <button id="clearDemo" class="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
-            Clear Demo Data
-          </button>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">TV cycle</p>
-              <p class="text-xs text-zinc-500">Broadcast game rotation signal.</p>
+        <!-- ACCORDION: Events -->
+        <details open class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-emerald-400/80"></div>
+              <h2 class="font-semibold text-lg">Events</h2>
             </div>
-            <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
+            <span class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
+              LIVE: <span id="liveEventName">—</span>
+            </span>
+          </summary>
 
-          <div>
-            <label class="text-xs text-zinc-400">Cycle rate (ms)</label>
-            <input id="tvRate" value="15000"
-              class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-          </div>
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70 space-y-3">
+            <div class="grid grid-cols-3 gap-2">
+              <input id="newEventName" placeholder="New event name"
+                class="col-span-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              <button id="createEvent" class="rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 px-3 py-2">
+                Create
+              </button>
+            </div>
 
-          <!-- CLEANUP -->
-          <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-semibold">Cleanup</p>
-                <p class="text-xs text-zinc-500">Keeps attempts.json from growing forever.</p>
+            <div>
+              <label class="text-xs text-zinc-400">Set LIVE event</label>
+              <div class="mt-1 flex gap-2">
+                <select id="liveEventSelect" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
+                <button id="setLive" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Set</button>
               </div>
-              <span class="text-xs text-zinc-400" id="cleanupHint">—</span>
+            </div>
+
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">Best per driver</p>
+                <p class="text-xs text-zinc-500">Recommended for clean boards.</p>
+              </div>
+              <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
+            </div>
+
+            <button id="applySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Apply Settings
+            </button>
+          </div>
+        </details>
+
+        <!-- ACCORDION: Fullscreen -->
+        <details class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-amber-400/80"></div>
+              <h2 class="font-semibold text-lg">Fullscreen (Pinned)</h2>
+            </div>
+            <span class="text-xs text-zinc-400">TV / Pin</span>
+          </summary>
+
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70 space-y-3">
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">Follow LIVE event</p>
+                <p class="text-xs text-zinc-500">If ON, fullscreen always shows the live event.</p>
+              </div>
+              <button id="followLiveToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Fullscreen event</label>
+              <select id="fsEventSelect" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Fullscreen game view</label>
+              <select id="fsGame" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                <option value="">Mixed</option>
+                <option value="Assetto Corsa">Assetto Corsa</option>
+                <option value="F1 25">F1 25</option>
+              </select>
+            </div>
+
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">Allow TV cycle override</p>
+                <p class="text-xs text-zinc-500">Only if you want auto-rotation.</p>
+              </div>
+              <button id="tvOverrideToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+            </div>
+
+            <button id="applyFullscreen" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              Apply Fullscreen Pin
+            </button>
+
+            <button id="resetPinnedEvent" class="w-full px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
+              Reset Pinned Event Board (scores + attempts)
+            </button>
+          </div>
+        </details>
+
+        <!-- ACCORDION: Rig -->
+        <details class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-sky-400/80"></div>
+              <h2 class="font-semibold text-lg">Rig Controls</h2>
+            </div>
+            <span class="text-xs text-zinc-400">Submissions</span>
+          </summary>
+
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70 space-y-3">
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">Enable rig submissions</p>
+                <p class="text-xs text-zinc-500">Allow rig PCs to POST laps using a shared key.</p>
+              </div>
+              <button id="rigToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="text-xs text-zinc-400">Older than (days)</label>
-                <input id="cleanupDays" value="90"
-                  class="mt-1 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                <label class="text-xs text-zinc-400">Timed laps</label>
+                <input id="rigTimedLaps" type="number" min="1" value="3"
+                  class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400">Out laps</label>
+                <input id="rigOutLaps" type="number" min="0" value="1"
+                  class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
+            </div>
+
+            <div class="mt-3 flex flex-col gap-2">
+              <div class="flex gap-2 items-center">
+                <input id="rigFlushFile" type="file" accept=".json" class="text-xs text-zinc-400" aria-label="Upload pending laps JSON" />
+                <button id="rigFlushBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Flush Pending</button>
+              </div>
+              <span id="rigFlushHint" class="text-xs text-zinc-500">Upload a `pending_laps.json` from a rig to import queued laps.</span>
+            </div>
+
+            <div class="border-t border-zinc-800 pt-3"></div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Rig Key (shared)</label>
+              <div class="mt-2 flex items-center gap-2">
+                <input id="rigKeyDisplay" type="password" readonly class="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm" />
+                <button id="rigReveal" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Reveal</button>
+                <button id="rigRotate" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Rotate</button>
+              </div>
+              <div class="text-xs text-zinc-500 mt-2">Rotate to invalidate old rig clients.</div>
+            </div>
+          </div>
+        </details>
+
+        <!-- ACCORDION: Streaming + Quick Lap + Presets + Display -->
+        <details class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-fuchsia-400/80"></div>
+              <h2 class="font-semibold text-lg">Streaming + Display</h2>
+            </div>
+            <span class="text-xs text-zinc-400">Overlay</span>
+          </summary>
+
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70 space-y-4">
+            <div>
+              <h3 class="font-semibold">Streaming</h3>
+              <p class="text-xs text-zinc-400">Quick streaming helpers and overlay controls for live streams.</p>
+
+              <div class="mt-2">
+                <label class="text-xs text-zinc-400">OBS stream title</label>
+                <input id="streamTitle" placeholder="Event — Live" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+              </div>
+              <div class="mt-2 flex gap-2">
+                <button id="toggleOverlay" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Toggle Overlay</button>
+                <button id="pushOverlay" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">Push Now</button>
+              </div>
+            </div>
+
+            <div class="border-t border-zinc-800"></div>
+
+            <div>
+              <h3 class="font-semibold">Quick-Lap Events</h3>
+              <p class="text-xs text-zinc-400">Start a short competition window for rigs.</p>
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <input id="qlap_count" type="number" min="1" placeholder="Drivers" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+                <input id="qlap_time" type="number" min="10" placeholder="Seconds" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+              </div>
+              <div class="flex gap-2 mt-2">
+                <button id="startQlap" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Start</button>
+                <button id="stopQlap" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">Stop</button>
+              </div>
+            </div>
+
+            <div class="border-t border-zinc-800"></div>
+
+            <div>
+              <h3 class="font-semibold">Presets</h3>
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <button id="presetOpenDay" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Open Day</button>
+                <button id="presetTournament" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Tournament</button>
+                <button id="presetTeaching" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Teaching</button>
+                <button id="presetMarketing" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Marketing</button>
+              </div>
+            </div>
+
+            <div class="border-t border-zinc-800"></div>
+
+            <div>
+              <h3 class="font-semibold">Display Settings</h3>
+
+              <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-2">
+                <div>
+                  <p class="font-semibold">Lecturer Mode</p>
+                  <p class="text-xs text-zinc-500">Hide last names, show tags.</p>
+                </div>
+                <button id="lecturerToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+              </div>
+
+              <div class="mt-2">
+                <label class="text-xs text-zinc-400">Name display mode</label>
+                <select id="nameMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                  <option value="FULL">Full name</option>
+                  <option value="FIRST_INITIAL">First initial + last</option>
+                  <option value="FIRST_LAST_INITIAL">First + last initial</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
+                <div>
+                  <p class="font-semibold">Auto-scroll (Fullscreen)</p>
+                  <p class="text-xs text-zinc-500">Slow broadcast crawl.</p>
+                </div>
+                <button id="autoScrollToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label class="text-xs text-zinc-400">Scroll rate (ms)</label>
+                  <input id="autoScrollRate" value="15000" type="number" min="1000"
+                    class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                </div>
+                <div>
+                  <label class="text-xs text-zinc-400">Pause (ms)</label>
+                  <input id="autoScrollPause" value="2000" type="number" min="500"
+                    class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
+                <div>
+                  <p class="font-semibold">Spotlight Mode (Fullscreen)</p>
+                  <p class="text-xs text-zinc-500">Highlight driver every N seconds.</p>
+                </div>
+                <button id="spotlightToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-2">
+                <div>
+                  <label class="text-xs text-zinc-400">Spotlight rate (ms)</label>
+                  <input id="spotlightRate" value="10000" type="number" min="2000"
+                    class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                </div>
+                <div>
+                  <label class="text-xs text-zinc-400">Mode</label>
+                  <select id="spotlightMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                    <option value="recent">Recent attempt</option>
+                    <option value="random">Random top 20</option>
+                    <option value="improved">Most improved</option>
+                  </select>
+                </div>
+              </div>
+
+              <button id="applyDisplaySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 mt-3">
+                Apply Display Settings
+              </button>
+            </div>
+          </div>
+        </details>
+
+        <!-- ACCORDION: Tools + Cleanup -->
+        <details class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <summary class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="h-2.5 w-2.5 rounded-full bg-red-400/70"></div>
+              <h2 class="font-semibold text-lg">Tools</h2>
+            </div>
+            <span class="text-xs text-zinc-400">Danger</span>
+          </summary>
+
+          <div class="px-4 pb-4 pt-2 border-t border-zinc-800/70 space-y-3">
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">Demo mode</p>
+                <p class="text-xs text-zinc-500">Auto-add demo attempts into LIVE event.</p>
+              </div>
+              <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="text-xs text-zinc-400">Demo rate (ms)</label>
+                <input id="demoRate" value="4000"
+                  class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
               </div>
               <div class="flex items-end">
-                <button id="cleanupRun" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-                  Run Cleanup
+                <button id="demoSeed" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+                  Seed 18
                 </button>
               </div>
             </div>
 
-            <label class="flex items-center gap-2 text-sm text-zinc-300">
-              <input id="cleanupAlsoScores" type="checkbox" class="accent-white" />
-              Also delete leaderboard rows older than N days
-            </label>
+            <button id="clearDemo" class="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
+              Clear Demo Data
+            </button>
 
-            <p class="text-xs text-zinc-500">
-              Default only removes <b>attempt history</b>. If you tick the box, it can also remove old leaderboard rows.
-            </p>
+            <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
+              <div>
+                <p class="font-semibold">TV cycle</p>
+                <p class="text-xs text-zinc-500">Broadcast game rotation signal.</p>
+              </div>
+              <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
+            </div>
+
+            <div>
+              <label class="text-xs text-zinc-400">Cycle rate (ms)</label>
+              <input id="tvRate" value="15000"
+                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            </div>
+
+            <!-- CLEANUP -->
+            <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3 space-y-2">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="font-semibold">Cleanup</p>
+                  <p class="text-xs text-zinc-500">Keeps attempts.json from growing forever.</p>
+                </div>
+                <span class="text-xs text-zinc-400" id="cleanupHint">—</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-zinc-400">Older than (days)</label>
+                  <input id="cleanupDays" value="90"
+                    class="mt-1 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                </div>
+                <div class="flex items-end">
+                  <button id="cleanupRun" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+                    Run Cleanup
+                  </button>
+                </div>
+              </div>
+
+              <label class="flex items-center gap-2 text-sm text-zinc-300">
+                <input id="cleanupAlsoScores" type="checkbox" class="accent-white" />
+                Also delete leaderboard rows older than N days
+              </label>
+
+              <p class="text-xs text-zinc-500">
+                Default only removes <b>attempt history</b>. If you tick the box, it can also remove old leaderboard rows.
+              </p>
+            </div>
+
+            <!-- Danger: clear all -->
+            <button id="clearAll" class="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-red-700/60 text-red-200 hover:bg-red-950/40">
+              Clear EVERYTHING (nuke)
+            </button>
           </div>
+        </details>
 
-          <!-- Danger: clear all -->
-          <button id="clearAll" class="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-red-700/60 text-red-200 hover:bg-red-950/40">
-            Clear EVERYTHING (nuke)
-          </button>
-        </div>
       </div>
 
       <!-- Middle: add lap -->
       <div class="col-span-12 lg:col-span-4">
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <div class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
           <h2 class="font-semibold text-lg mb-3">Add lap (to LIVE event)</h2>
 
           <div class="text-xs text-zinc-400 mb-3">
@@ -342,6 +456,14 @@
           </div>
 
           <form id="scoreForm" class="space-y-3">
+            <div class="flex items-center gap-2">
+              <label class="text-xs text-zinc-400">Quick pick</label>
+              <select id="recentDrivers" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                <option value="">-- recent drivers --</option>
+              </select>
+              <label title="Repeat last used driver" class="text-xs text-zinc-400 flex items-center gap-2"><input id="repeatLast" type="checkbox" class="accent-white"/> Repeat</label>
+            </div>
+
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="text-xs text-zinc-400">First</label>
@@ -355,8 +477,15 @@
 
             <div>
               <label class="text-xs text-zinc-400">Lap time (m:ss.mmm)</label>
-              <input id="time" required placeholder="1:23.456"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              <div class="flex gap-2 items-center">
+                <input id="time" required placeholder="1:23.456"
+                  class="mt-1 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                <div class="flex gap-2">
+                  <button type="button" data-time="1:23.456" class="quickTime px-3 py-2 rounded-xl bg-zinc-800 text-zinc-100 text-sm">1:23.456</button>
+                  <button type="button" data-time="1:30.000" class="quickTime px-3 py-2 rounded-xl bg-zinc-800 text-zinc-100 text-sm">1:30.000</button>
+                  <button type="button" data-time="1:20.000" class="quickTime px-3 py-2 rounded-xl bg-zinc-800 text-zinc-100 text-sm">1:20.000</button>
+                </div>
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -374,15 +503,25 @@
             </div>
 
             <div>
-              <label class="text-xs text-zinc-400">Track</label>
-              <input id="track" required
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              <label class="text-xs text-zinc-400">Track / Map</label>
+              <div class="flex gap-2">
+                <select id="recentTracks" class="mt-1 w-2/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                  <option value="">-- recent tracks --</option>
+                </select>
+                <input id="track" required placeholder="Type track name"
+                  class="mt-1 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
             </div>
 
             <div>
               <label class="text-xs text-zinc-400">Car</label>
-              <input id="car"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              <div class="flex gap-2">
+                <select id="recentCars" class="mt-1 w-2/3 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                  <option value="">-- recent cars --</option>
+                </select>
+                <input id="car"
+                  class="mt-1 flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+              </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -403,24 +542,43 @@
               </div>
             </div>
 
-            <button class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Submit
-            </button>
+            <div class="grid grid-cols-2 gap-2">
+              <button id="submitLapBtn" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Submit</button>
+              <button id="quickSubmitBtn" type="button" class="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Quick Submit</button>
+            </div>
 
             <p id="submitHint" class="text-xs text-zinc-500"></p>
           </form>
         </div>
       </div>
 
-      <!-- Right: leaderboard rows for pinned event -->
+      <!-- Right: pinned rows (table + search) -->
       <div class="col-span-12 lg:col-span-4">
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-lg">Pinned Event Rows (Leaderboard)</h2>
-            <span class="text-xs text-zinc-400" id="pinnedSummary">—</span>
+        <div class="panel rounded-2xl border border-zinc-800/80 bg-zinc-900/50 p-4 shadow-[0_0_0_1px_rgba(255,255,255,.03)]">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div class="min-w-0">
+              <h2 class="font-semibold text-lg">Pinned Event Rows (Leaderboard)</h2>
+              <div class="text-xs text-zinc-400 mt-1">
+                Showing: <span id="pinnedSummary" class="font-semibold text-zinc-200">—</span>
+              </div>
+            </div>
+
+            <div class="flex flex-col items-end gap-2">
+              <div class="text-xs text-zinc-500" id="pinnedCount">—</div>
+            </div>
           </div>
 
-          <div id="entryList" class="space-y-2 max-h-[720px] overflow-auto pr-1"></div>
+          <!-- Search / Filter -->
+          <div class="flex items-center gap-2 mb-3">
+            <input id="pinnedSearch" placeholder="Search driver / track / car / course…"
+              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-zinc-600" />
+            <button id="clearPinnedSearch"
+              class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900 text-sm">
+              Clear
+            </button>
+          </div>
+
+          <div id="entryList"></div>
         </div>
       </div>
     </div>
@@ -600,9 +758,23 @@
     cleanupHint.textContent = "Attempts cleanup";
     renderEventOptions();
     renderPinnedList();
-    // rig UI
     if (typeof refreshRigUI === "function") refreshRigUI();
   }
+
+  // Display simple rig status (lastSeen + queued)
+  async function refreshRigStatus() {
+    try {
+      const r = await fetch('/api/rig/state');
+      const j = await r.json();
+      if (!j?.ok) return;
+      const last = j.lastSeen ? new Date(j.lastSeen).toLocaleTimeString() : 'never';
+      document.getElementById('rigStatusMini').textContent = `Rig lastSeen: ${last} • queued: ${j.queuedTotal || 0}`;
+    } catch (e) {
+      document.getElementById('rigStatusMini').textContent = 'Rig status: unreachable';
+    }
+  }
+  setInterval(refreshRigStatus, 8000);
+  refreshRigStatus();
 
   // Events actions
   createEventBtn.addEventListener("click", () => {
@@ -723,6 +895,13 @@
       : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
     rigTimedLaps.value = rig.timedLaps || 3;
     rigOutLaps.value = rig.outLaps || 1;
+    try {
+      const kd = document.getElementById('rigKeyDisplay');
+      if (kd) {
+        const k = rig.key || '';
+        kd.value = (window.rigRevealed) ? k : (k ? k.replace(/.(?=.{4})/g, '*') : '');
+      }
+    } catch (e) {}
   }
 
   rigToggle.addEventListener("click", () => {
@@ -737,6 +916,30 @@
   rigOutLaps.addEventListener("change", () => {
     const v = Number(rigOutLaps.value || 1);
     socket.emit("adminRigSettings", { pin: getPin(), patch: { outLaps: v } });
+  });
+
+  // Rig key management
+  const rigKeyDisplay = document.getElementById('rigKeyDisplay');
+  const rigReveal = document.getElementById('rigReveal');
+  const rigRotate = document.getElementById('rigRotate');
+  let rigRevealed = false;
+
+  rigReveal.addEventListener('click', () => {
+    rigRevealed = !rigRevealed;
+    rigReveal.textContent = rigRevealed ? 'Hide' : 'Reveal';
+    rigKeyDisplay.type = rigRevealed ? 'text' : 'password';
+    window.rigRevealed = rigRevealed;
+    if (rigRevealed && !rigKeyDisplay.value) socket.emit('requestSettings');
+  });
+
+  rigRotate.addEventListener('click', () => {
+    if (!confirm('Rotate rig key? This will invalidate existing rig clients.')) return;
+    socket.emit('adminRigKeyRotate', { pin: getPin() });
+  });
+
+  socket.on('rigKeyUpdate', ({ key }) => {
+    if (!key) return;
+    rigKeyDisplay.value = rigRevealed ? key : key.replace(/.(?=.{4})/g, '*');
   });
 
   rigFlushBtn.addEventListener("click", async () => {
@@ -763,18 +966,25 @@
   });
 
   // Presets
-  presetOpenDay.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "openDay" });
+  presetOpenDay.addEventListener("click", () => socket.emit("adminPreset", { pin: getPin(), preset: "openDay" }));
+  presetTournament.addEventListener("click", () => socket.emit("adminPreset", { pin: getPin(), preset: "tournament" }));
+  presetTeaching.addEventListener("click", () => socket.emit("adminPreset", { pin: getPin(), preset: "teaching" }));
+  presetMarketing.addEventListener("click", () => socket.emit("adminPreset", { pin: getPin(), preset: "marketing" }));
+
+  // Streaming controls
+  const toggleOverlay = document.getElementById('toggleOverlay');
+  const pushOverlay = document.getElementById('pushOverlay');
+  const streamTitle = document.getElementById('streamTitle');
+  toggleOverlay?.addEventListener('click', () => socket.emit('adminOverlay', { pin: getPin(), show: true }));
+
+  // Quick-lap
+  const startQlap = document.getElementById('startQlap');
+  const stopQlap = document.getElementById('stopQlap');
+  startQlap?.addEventListener('click', () => {
+    const params = { count: Number(document.getElementById('qlap_count').value||0), timeSec: Number(document.getElementById('qlap_time').value||60) };
+    socket.emit('adminQuickLapStart', { pin: getPin(), params });
   });
-  presetTournament.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "tournament" });
-  });
-  presetTeaching.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "teaching" });
-  });
-  presetMarketing.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "marketing" });
-  });
+  stopQlap?.addEventListener('click', () => socket.emit('adminQuickLapStop', { pin: getPin() }));
 
   // Cleanup
   cleanupRun.addEventListener("click", (e) => {
@@ -804,6 +1014,87 @@
   const form = document.getElementById("scoreForm");
   const submitHint = document.getElementById("submitHint");
   const day = document.getElementById("day");
+  const recentDrivers = document.getElementById("recentDrivers");
+  const repeatLast = document.getElementById("repeatLast");
+  const quickTimeButtons = () => Array.from(document.querySelectorAll('.quickTime'));
+  const submitLapBtn = document.getElementById('submitLapBtn');
+  const quickSubmitBtn = document.getElementById('quickSubmitBtn');
+
+  const LAST_DRIVER = 'admin_last_driver';
+
+  async function loadRecentDrivers() {
+    try {
+      const r = await fetch('/api/attempts?limit=60');
+      const list = await r.json();
+      const seen = new Set();
+      const opts = [];
+      const seenTracks = new Set();
+      const trackOpts = [];
+      const seenCars = new Set();
+      const carOpts = [];
+      for (const a of list) {
+        const key = `${a.first}|${a.last}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        opts.push({ first: a.first, last: a.last, cohort: a.cohort, course: a.course, track: a.track, car: a.car });
+        if (opts.length >= 30) break;
+      }
+      for (const a of list) {
+        const t = String(a.track || '').trim();
+        if (t && !seenTracks.has(t)) { seenTracks.add(t); trackOpts.push(t); }
+        const c = String(a.car || '').trim();
+        if (c && !seenCars.has(c)) { seenCars.add(c); carOpts.push(c); }
+      }
+
+      recentDrivers.innerHTML = '<option value="">-- recent drivers --</option>' + opts.map(o => `<option value="${escapeHtml(o.first)}|${escapeHtml(o.last)}">${escapeHtml(o.first)} ${escapeHtml(o.last)} ${escapeHtml(o.track||'')}</option>`).join('');
+      const rt = document.getElementById('recentTracks');
+      rt.innerHTML = '<option value="">-- recent tracks --</option>' + trackOpts.slice(0,40).map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+      const rc = document.getElementById('recentCars');
+      rc.innerHTML = '<option value="">-- recent cars --</option>' + carOpts.slice(0,40).map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    } catch (e) {}
+  }
+
+  recentDrivers.addEventListener('change', () => {
+    const v = recentDrivers.value;
+    if (!v) return;
+    const [f, l] = v.split('|');
+    document.getElementById('first').value = f || '';
+    document.getElementById('last').value = l || '';
+  });
+
+  document.getElementById('recentTracks').addEventListener('change', () => {
+    const v = document.getElementById('recentTracks').value;
+    if (!v) return;
+    document.getElementById('track').value = v;
+  });
+  document.getElementById('recentCars').addEventListener('change', () => {
+    const v = document.getElementById('recentCars').value;
+    if (!v) return;
+    document.getElementById('car').value = v;
+  });
+
+  quickTimeButtons().forEach(btn => btn.addEventListener('click', () => {
+    const t = btn.getAttribute('data-time');
+    document.getElementById('time').value = t;
+  }));
+
+  function saveLastDriver() {
+    const f = document.getElementById('first').value.trim();
+    const l = document.getElementById('last').value.trim();
+    if (f && l) localStorage.setItem(LAST_DRIVER, JSON.stringify({ first: f, last: l }));
+  }
+  function loadLastDriver() {
+    try { return JSON.parse(localStorage.getItem(LAST_DRIVER)); } catch(e){return null;}
+  }
+
+  quickSubmitBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (repeatLast.checked) {
+      const ld = loadLastDriver();
+      if (ld) { document.getElementById('first').value = ld.first; document.getElementById('last').value = ld.last; }
+    }
+    submitLapBtn.click();
+  });
 
   if (!day.value) {
     const d = new Date();
@@ -814,8 +1105,7 @@
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!settings?.liveEventId) return;
-
-    socket.emit("newScore", {
+    const payload = {
       first: document.getElementById("first").value.trim(),
       last: document.getElementById("last").value.trim(),
       time: document.getElementById("time").value.trim(),
@@ -827,7 +1117,15 @@
       course: document.getElementById("course").value.trim(),
       eventId: settings.liveEventId,
       createdAt: new Date().toISOString()
-    });
+    };
+
+    if (!payload.first || !payload.last || !payload.time) {
+      submitHint.textContent = 'First, last and time are required.';
+      return;
+    }
+
+    socket.emit("newScore", payload);
+    saveLastDriver();
   });
 
   socket.on("submitResult", (r) => {
@@ -844,9 +1142,18 @@
     }
   });
 
-  // Pinned list (leaderboard rows only)
+  // Pinned list (table + search)
   const entryList = document.getElementById("entryList");
   const pinnedSummary = document.getElementById("pinnedSummary");
+  const pinnedCount = document.getElementById("pinnedCount");
+  const pinnedSearch = document.getElementById("pinnedSearch");
+  const clearPinnedSearch = document.getElementById("clearPinnedSearch");
+
+  clearPinnedSearch.addEventListener("click", () => {
+    pinnedSearch.value = "";
+    renderPinnedList();
+  });
+  pinnedSearch.addEventListener("input", () => renderPinnedList());
 
   entryList.addEventListener("click", (e) => {
     const btn = e.target.closest("button[data-del]");
@@ -877,6 +1184,20 @@
     return settings.fullscreen?.followLiveEvent ? settings.liveEventId : settings.fullscreen?.eventId;
   }
 
+  function normalize(s) {
+    return String(s || "").toLowerCase().trim();
+  }
+
+  function matchesQuery(row, q) {
+    if (!q) return true;
+    const hay = [
+      row.first, row.last, row.time, row.game, row.track, row.car, row.cohort, row.course, row.day
+    ].map(normalize).join(" ");
+    // support multi-token search: all tokens must match
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return tokens.every(tok => hay.includes(tok));
+  }
+
   function renderPinnedList() {
     if (!settings) return;
 
@@ -884,26 +1205,62 @@
     const pinnedName = settings.events.find(e => e.id === eid)?.name || "—";
     pinnedSummary.textContent = pinnedName;
 
-    const list = scores.filter(s => s.eventId === eid)
-      .slice()
-      .sort((a,b) => timeToMs(a.time) - timeToMs(b.time))
-      .slice(0, 60);
+    const q = normalize(pinnedSearch.value);
 
-    entryList.innerHTML = list.map(s => `
-      <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <div class="font-semibold truncate">${escapeHtml(s.first)} ${escapeHtml(s.last)}</div>
-            <div class="text-sm text-zinc-300 truncate">${escapeHtml(s.time)} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)} • ${escapeHtml(s.car || "—")}</div>
-            <div class="text-xs text-zinc-500 truncate">${escapeHtml(s.cohort || "Guest")} / ${escapeHtml(s.course || "—")}</div>
-          </div>
-          <button type="button" data-del="${escapeHtml(s.id)}"
-  class="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-  Delete
-</button>
+    const all = scores
+      .filter(s => s.eventId === eid)
+      .slice()
+      .sort((a,b) => timeToMs(a.time) - timeToMs(b.time));
+
+    const filtered = all.filter(s => matchesQuery(s, q)).slice(0, 60);
+
+    pinnedCount.textContent = q
+      ? `Showing ${filtered.length} of ${Math.min(all.length,60)} (filtered)`
+      : `Showing ${Math.min(all.length,60)} rows`;
+
+    entryList.innerHTML = filtered.length ? `
+      <div class="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+        <div class="overflow-auto soft-scroll max-h-[720px]">
+          <table class="min-w-full text-sm">
+            <thead class="sticky top-0 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
+              <tr class="text-left text-xs uppercase tracking-wider text-zinc-400">
+                <th class="px-3 py-3 w-[56px]">#</th>
+                <th class="px-3 py-3 min-w-[180px]">Driver</th>
+                <th class="px-3 py-3 w-[120px]">Time</th>
+                <th class="px-3 py-3 min-w-[160px]">Track</th>
+                <th class="px-3 py-3 min-w-[140px]">Car</th>
+                <th class="px-3 py-3 w-[130px]">Meta</th>
+                <th class="px-3 py-3 w-[110px] text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-900">
+              ${filtered.map((s, i) => `
+                <tr class="${i % 2 ? "bg-zinc-950" : "bg-zinc-950/60"} hover:bg-zinc-900/40">
+                  <td class="px-3 py-3 text-zinc-500 tabular-nums">${i + 1}</td>
+                  <td class="px-3 py-3">
+                    <div class="font-semibold truncate">${escapeHtml(s.first)} ${escapeHtml(s.last)}</div>
+                    <div class="text-xs text-zinc-500 truncate">${escapeHtml(s.cohort || "Guest")} • ${escapeHtml(s.course || "—")}</div>
+                  </td>
+                  <td class="px-3 py-3 font-semibold tabular-nums text-zinc-100">${escapeHtml(s.time)}</td>
+                  <td class="px-3 py-3 text-zinc-300 truncate">${escapeHtml(s.track)}</td>
+                  <td class="px-3 py-3 text-zinc-300 truncate">${escapeHtml(s.car || "—")}</td>
+                  <td class="px-3 py-3 text-xs text-zinc-500 truncate">
+                    ${escapeHtml(s.game)} • ${escapeHtml(s.day || "—")}
+                  </td>
+                  <td class="px-3 py-3 text-right">
+                    <button type="button" data-del="${escapeHtml(s.id)}"
+                      class="inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold
+                             bg-red-600/90 hover:bg-red-500 text-white">
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
         </div>
       </div>
-    `).join("") || `<div class="text-zinc-500 text-sm">No rows for pinned event.</div>`;
+    ` : `<div class="text-zinc-500 text-sm">No rows for pinned event${q ? " (filter cleared it)" : ""}.</div>`;
   }
 
   // Socket events
@@ -911,6 +1268,7 @@
     scores = Array.isArray(existing) ? existing : [];
     pingPin();
     renderPinnedList();
+    loadRecentDrivers();
   });
 
   socket.on("settingsUpdate", (s) => {

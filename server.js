@@ -529,6 +529,57 @@ app.get("/api/scores", (req, res) => res.json(scores));
 app.get("/api/events", (req, res) => res.json(settings.events));
 app.get("/api/ratings", (req, res) => res.json(ratings));
 
+// -------------------- Rig endpoints --------------------
+// Track simple rig state (lastSeen timestamp) and accept rig lap submissions
+const rigState = {
+  lastSeen: null,
+  queuedTotal: 0
+};
+
+app.get('/api/rig/state', (req, res) => {
+  res.json({ ok: true, rig: settings.rig || { enabled: false, timedLaps: 3, outLaps: 1 }, lastSeen: rigState.lastSeen, queuedTotal: rigState.queuedTotal, liveEventName: getLiveEvent()?.name });
+});
+
+app.post('/api/submit-lap', express.json(), (req, res) => {
+  // Require RIG key if present in settings
+  const rigKeyHeader = String(req.headers['x-rig-key'] || '').trim();
+  const allowedKey = settings.rig?.key || null;
+  if (settings.rig && settings.rig.enabled) {
+    if (allowedKey && allowedKey.length && rigKeyHeader !== allowedKey) {
+      return res.status(403).json({ ok: false, reason: 'bad_key' });
+    }
+  } else {
+    return res.status(403).json({ ok: false, reason: 'rig_disabled' });
+  }
+
+  rigState.lastSeen = new Date().toISOString();
+
+  const payload = req.body;
+  if (!payload) return res.status(400).json({ ok: false, reason: 'no_body' });
+
+  // server-side sanitise + submit
+  const result = submitLap(payload);
+  if (result.ok) {
+    return res.json({ ok: true, mode: result.mode });
+  }
+  return res.status(400).json(result);
+});
+
+// Admin import of queued laps (upload JSON array)
+app.post('/api/rig/flush', express.json(), (req, res) => {
+  const pin = String(req.headers['x-admin-pin'] || '');
+  if (!isAdmin(pin)) return res.status(403).json({ ok: false, reason: 'denied' });
+  const body = req.body;
+  if (!Array.isArray(body)) return res.status(400).json({ ok: false, reason: 'bad_payload' });
+  let imported = 0;
+  for (const item of body) {
+    const r = submitLap(item);
+    if (r.ok) imported++;
+  }
+  saveScores(); saveAttempts();
+  return res.json({ ok: true, imported });
+});
+
 app.get("/api/attempts", (req, res) => {
   const q = String(req.query.q || "").trim().toLowerCase();
   const limit = Math.min(parseInt(req.query.limit || "250", 10), 2000);
@@ -772,6 +823,72 @@ io.on("connection", (socket) => {
     saveSettings();
     io.emit("settingsUpdate", getPublicSettings());
     socket.emit("adminResult", { ok: true, action: "preset", preset });
+  });
+
+  // Allow admin client to request current settings directly
+  socket.on('requestSettings', () => {
+    socket.emit('settingsUpdate', getPublicSettings());
+  });
+
+  // Rig settings
+  socket.on("adminRigSettings", ({ pin, patch }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "rigSettings", reason: "denied" });
+    settings.rig ||= { enabled: false, timedLaps: 3, outLaps: 1, key: '' };
+    if (typeof patch?.enabled === 'boolean') settings.rig.enabled = patch.enabled;
+    if (Number.isFinite(patch?.timedLaps)) settings.rig.timedLaps = Number(patch.timedLaps);
+    if (Number.isFinite(patch?.outLaps)) settings.rig.outLaps = Number(patch.outLaps);
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "rigSettings" });
+  });
+
+  // Quick-lap event controls
+  socket.on('adminQuickLapStart', ({ pin, params }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "quickLapStart", reason: "denied" });
+    settings.quickLap ||= {};
+    settings.quickLap.enabled = true;
+    settings.quickLap.params = params || {};
+    saveSettings();
+    io.emit('settingsUpdate', getPublicSettings());
+    socket.emit('adminResult', { ok: true, action: 'quickLapStart' });
+  });
+
+  socket.on('adminQuickLapStop', ({ pin }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "quickLapStop", reason: "denied" });
+    settings.quickLap ||= {};
+    settings.quickLap.enabled = false;
+    saveSettings();
+    io.emit('settingsUpdate', getPublicSettings());
+    socket.emit('adminResult', { ok: true, action: 'quickLapStop' });
+  });
+
+  // Overlay controls (simple broadcast)
+  socket.on('adminOverlay', ({ pin, show }) => {
+    if (!isAdmin(pin)) return socket.emit('adminResult', { ok: false, action: 'overlay', reason: 'denied' });
+    io.emit('overlayToggle', { show: !!show });
+    socket.emit('adminResult', { ok: true, action: 'overlay' });
+  });
+
+  // Rotate or set rig key
+  socket.on("adminRigKeyRotate", ({ pin }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "rigKeyRotate", reason: "denied" });
+    settings.rig ||= { enabled: false, timedLaps: 3, outLaps: 1, key: '' };
+    const newKey = makeId();
+    settings.rig.key = newKey;
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "rigKeyRotate" });
+    socket.emit("rigKeyUpdate", { key: newKey });
+  });
+
+  socket.on("adminRigKeySet", ({ pin, key }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "rigKeySet", reason: "denied" });
+    settings.rig ||= { enabled: false, timedLaps: 3, outLaps: 1, key: '' };
+    settings.rig.key = String(key || '');
+    saveSettings();
+    io.emit("settingsUpdate", getPublicSettings());
+    socket.emit("adminResult", { ok: true, action: "rigKeySet" });
+    socket.emit("rigKeyUpdate", { key: settings.rig.key });
   });
 });
 

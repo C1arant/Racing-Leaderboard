@@ -6,87 +6,214 @@
   <title>Rig Session — Leaderboard</title>
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="min-h-screen bg-zinc-950 text-zinc-100">
-  <div class="max-w-3xl mx-auto p-6">
-    <h1 class="text-2xl font-extrabold mb-4">Rig Session — Assetto Corsa</h1>
 
-    <div id="statusRow" class="flex items-center gap-3 mb-4">
-      <div id="liveEvent" class="text-sm text-zinc-300" aria-live="polite">LIVE event: —</div>
-      <div id="rigStatus" class="ml-auto text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500 text-amber-300" role="status">Rig: ready</div>
+  <style>
+    .panel { backdrop-filter: blur(10px); }
+    .soft-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+    .soft-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 999px; }
+    .soft-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.03); border-radius: 999px; }
+    :focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(255,255,255,.10), 0 0 0 4px rgba(245,158,11,.20); border-radius: 14px; }
+  </style>
+</head>
+
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
+  <!-- subtle kiosk glow -->
+  <div class="pointer-events-none fixed inset-0 -z-10">
+    <div class="absolute -top-48 left-1/2 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-amber-500/10 blur-3xl"></div>
+    <div class="absolute -bottom-56 right-[-120px] h-[520px] w-[720px] rounded-full bg-indigo-500/10 blur-3xl"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,.04),transparent_55%)]"></div>
+  </div>
+
+  <div class="max-w-4xl mx-auto p-6">
+    <!-- Header -->
+    <div class="panel rounded-3xl border border-zinc-800/80 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,.03)] mb-5">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight">Rig Session</h1>
+          <p class="text-sm text-zinc-400 mt-1 truncate">
+            Assetto Corsa • Enter your details • Drive your out lap(s) • Then timed laps are submitted automatically
+          </p>
+        </div>
+
+        <div class="flex flex-col items-end gap-2">
+          <div id="rigStatus"
+               class="text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/70 text-amber-200"
+               role="status">
+            Rig: ready
+          </div>
+          <div class="text-xs text-zinc-500">Press <span class="font-semibold text-zinc-300">L</span> to simulate a lap</div>
+        </div>
+      </div>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        <div id="liveEvent"
+             class="text-sm text-zinc-300 px-3 py-2 rounded-2xl border border-zinc-800 bg-zinc-950/60"
+             aria-live="polite">
+          LIVE event: —
+        </div>
+        <div id="statusRow" class="flex-1"></div>
+        <!-- heartbeat is injected by JS; we style the container area by keeping space -->
+      </div>
     </div>
 
     <!-- Driver setup -->
-    <section id="setup" class="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 mb-4" aria-labelledby="setupTitle">
-      <h2 id="setupTitle" class="font-semibold mb-2">Driver Setup</h2>
+    <section id="setup"
+      class="panel rounded-3xl border border-zinc-800/80 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,.03)] mb-5"
+      aria-labelledby="setupTitle">
 
-      <div class="grid grid-cols-2 gap-2 mb-2">
-        <input id="first" placeholder="First name" aria-label="First name" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
-        <input id="last" placeholder="Last name" aria-label="Last name" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <h2 id="setupTitle" class="text-lg font-bold">Driver Setup</h2>
+          <p class="text-sm text-zinc-400 mt-1">Fill this in once. It saves locally on this PC.</p>
+        </div>
+        <div class="text-xs text-zinc-500 text-right">
+          <div class="font-semibold text-zinc-300">Kiosk tip</div>
+          <div>Use tab to jump fields fast</div>
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-2">
-        <select id="cohort" aria-label="Cohort" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2">
-          <option>Guest</option>
-          <option>Staff</option>
-          <option>Y1</option>
-          <option>Y2</option>
-          <option>Y3</option>
-        </select>
-        <input id="course" placeholder="Course (Games / Computing...)" aria-label="Course" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="text-xs text-zinc-400">First name</label>
+          <input id="first" placeholder="First name" aria-label="First name"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Last name</label>
+          <input id="last" placeholder="Last name" aria-label="Last name"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-2">
-        <input id="car" placeholder="Car (optional)" aria-label="Car" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
-        <input id="track" placeholder="Track name" aria-label="Track" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="text-xs text-zinc-400">Cohort</label>
+          <select id="cohort" aria-label="Cohort"
+                  class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base">
+            <option>Guest</option>
+            <option>Staff</option>
+            <option>Y1</option>
+            <option>Y2</option>
+            <option>Y3</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Course</label>
+          <input id="course" placeholder="Games / Computing / Animation…" aria-label="Course"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+        </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-2">
-        <input id="rigKey" placeholder="Rig Key (stored locally)" aria-label="Rig Key" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
-        <input id="serverBase" placeholder="Server base URL (leave blank for same host)" aria-label="Server base URL" class="bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2" />
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+        <div>
+          <label class="text-xs text-zinc-400">Car (optional)</label>
+          <input id="car" placeholder="Car (optional)" aria-label="Car"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Track</label>
+          <input id="track" placeholder="Track name" aria-label="Track"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+        </div>
       </div>
 
-      <div class="flex gap-2 mt-3">
-        <button id="saveDriver" class="px-4 py-2 rounded-xl bg-white text-black font-semibold">Save & Start Session</button>
-        <button id="resetDriver" class="px-4 py-2 rounded-xl border border-zinc-800">Reset</button>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+        <div>
+          <label class="text-xs text-zinc-400">Rig Key</label>
+          <input id="rigKey" placeholder="Rig Key (stored locally)" aria-label="Rig Key"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+          <div class="text-xs text-zinc-500 mt-2">Used to authenticate lap submission.</div>
+        </div>
+        <div>
+          <label class="text-xs text-zinc-400">Server base URL</label>
+          <input id="serverBase" placeholder="Leave blank for same host" aria-label="Server base URL"
+                 class="mt-1 w-full bg-zinc-950/80 border border-zinc-800 rounded-2xl px-4 py-3 text-base" />
+          <div class="text-xs text-zinc-500 mt-2">Only set this if the rig is posting to a different host.</div>
+        </div>
       </div>
-      <p class="text-xs text-zinc-500 mt-2">Saved locally — refresh the page to resume session.</p>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-5">
+        <button id="saveDriver"
+                class="flex-1 px-5 py-4 rounded-2xl bg-white text-black font-extrabold text-lg hover:bg-zinc-200">
+          Save & Start Session
+        </button>
+        <button id="resetDriver"
+                class="px-5 py-4 rounded-2xl border border-zinc-800 bg-zinc-950/60 hover:bg-zinc-900 font-semibold">
+          Reset
+        </button>
+      </div>
+
+      <p class="text-xs text-zinc-500 mt-3">
+        Saved locally — refresh the page to resume the current session.
+      </p>
     </section>
 
     <!-- Session view -->
-    <section id="session" class="hidden rounded-xl border border-zinc-800 bg-zinc-900/60 p-4" aria-live="polite">
-      <div class="flex items-center justify-between mb-3">
-        <div>
-          <div id="driverName" class="text-lg font-semibold">—</div>
-          <div id="driverMeta" class="text-sm text-zinc-400">—</div>
+    <section id="session"
+      class="hidden panel rounded-3xl border border-zinc-800/80 bg-zinc-900/40 p-5 shadow-[0_0_0_1px_rgba(255,255,255,.03)]"
+      aria-live="polite">
+
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+        <div class="min-w-0">
+          <div id="driverName" class="text-xl font-extrabold tracking-tight">—</div>
+          <div id="driverMeta" class="text-sm text-zinc-400 mt-1 truncate">—</div>
+
+          <div class="flex flex-wrap gap-2 mt-3">
+            <div class="px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/60 text-xs text-zinc-300">
+              <span class="text-zinc-500">Progress:</span> <span id="sessionProgress">Out lap 0/0</span>
+            </div>
+            <div class="px-3 py-1.5 rounded-full border border-zinc-800 bg-zinc-950/60 text-xs text-zinc-300">
+              <span class="text-zinc-500">Mode:</span> <span id="sessionMode" class="font-semibold">Armed</span>
+            </div>
+          </div>
         </div>
-        <div class="text-right">
-          <div id="sessionProgress" class="text-sm">Out lap 0/0</div>
-          <div id="lastLap" class="text-2xl font-extrabold mt-2">—</div>
+
+        <div class="sm:text-right">
+          <div class="text-xs text-zinc-400">Last lap</div>
+          <div id="lastLap" class="text-4xl sm:text-5xl font-extrabold mt-1 tabular-nums">—</div>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <div class="rounded-xl border border-zinc-800 p-3">
-          <div class="text-xs text-zinc-400">Session mode</div>
-          <div id="sessionMode" class="font-semibold">Armed</div>
-          <div class="text-xs text-zinc-500 mt-2">Out laps ignored, then timed laps submitted automatically.</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
+          <div class="text-xs text-zinc-400">Session rules</div>
+          <div class="font-semibold mt-1">Out laps ignored → Timed laps auto-submit</div>
+          <div class="text-xs text-zinc-500 mt-2">If the network drops, laps are queued and flushed later.</div>
         </div>
 
-        <div class="rounded-xl border border-zinc-800 p-3">
+        <div class="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-4">
           <div class="text-xs text-zinc-400">Network</div>
-          <div id="netIndicator" class="font-semibold text-green-400">Online</div>
+          <div id="netIndicator" class="font-extrabold mt-1 text-green-400">Online</div>
           <div id="queuedCount" class="text-xs text-zinc-500 mt-2" aria-live="polite">Queued: 0</div>
         </div>
       </div>
 
-      <div class="flex gap-2">
-        <button id="lapBtn" class="flex-1 px-4 py-4 rounded-xl bg-amber-500 text-black font-extrabold text-xl" aria-label="Simulate lap (L)">Lap (simulate)</button>
-        <button id="stopBtn" class="px-4 py-4 rounded-xl bg-red-600 text-white font-semibold">Stop</button>
-        <button id="resetSessionBtn" class="px-4 py-4 rounded-xl border border-zinc-800">Reset</button>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <button id="lapBtn"
+          class="sm:col-span-2 px-6 py-6 rounded-3xl bg-amber-500 text-black font-extrabold text-2xl hover:opacity-95 active:scale-[0.99]"
+          aria-label="Simulate lap (L)">
+          Lap (simulate)
+        </button>
+
+        <div class="flex sm:flex-col gap-3">
+          <button id="stopBtn" class="flex-1 px-5 py-5 rounded-3xl bg-red-600 text-white font-extrabold hover:bg-red-500">
+            Stop
+          </button>
+          <button id="resetSessionBtn" class="flex-1 px-5 py-5 rounded-3xl border border-zinc-800 bg-zinc-950/60 hover:bg-zinc-900 font-semibold">
+            Reset
+          </button>
+        </div>
       </div>
 
-      <div id="sessionLog" class="mt-3 text-xs text-zinc-400 max-h-48 overflow-auto" aria-live="polite"></div>
+      <div class="mt-5">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm font-semibold text-zinc-200">Session Log</div>
+          <div class="text-xs text-zinc-500">Most recent first</div>
+        </div>
+        <div id="sessionLog"
+             class="soft-scroll rounded-2xl border border-zinc-800 bg-zinc-950/50 p-3 text-xs text-zinc-300 max-h-56 overflow-auto"
+             aria-live="polite"></div>
+      </div>
     </section>
   </div>
 
@@ -138,52 +265,330 @@
   function saveQueued(arr) { localStorage.setItem(LS_QUEUED, JSON.stringify(arr)); }
   function pushQueued(obj) { const arr = loadQueued(); arr.push(obj); while(arr.length>2000) arr.shift(); saveQueued(arr); updateQueuedUI(); }
 
-  function updateQueuedUI(){ const q=loadQueued(); queuedCount.textContent = `Queued: ${q.length}`; queuedCount.style.color = q.length ? "#f59e0b" : "#94a3b8"; }
+  function updateQueuedUI(){
+    const q=loadQueued();
+    queuedCount.textContent = `Queued: ${q.length}`;
+    queuedCount.style.color = q.length ? "#f59e0b" : "#94a3b8";
+  }
 
-  function logLine(s){ const t=`[${new Date().toLocaleTimeString()}] ${s}`; const d=document.createElement('div'); d.textContent=t; sessionLog.prepend(d); }
+  function logLine(s){
+    const t=`[${new Date().toLocaleTimeString()}] ${s}`;
+    const d=document.createElement('div');
+    d.textContent=t;
+    sessionLog.prepend(d);
+  }
 
-  async function getRigState(base){ try{ const url=(base||'') + '/api/rig/state'; const r=await fetch(url); if(!r.ok) return null; return await r.json(); }catch(e){return null;} }
-  async function refreshLiveEvent(){ const state = await getRigState(serverBaseEl.value); if(state?.liveEventName) liveEventEl.textContent = `LIVE event: ${state.liveEventName}`; }
+  async function getRigState(base){
+    try{
+      const url=(base||'') + '/api/rig/state';
+      const r=await fetch(url);
+      if(!r.ok) return null;
+      return await r.json();
+    }catch(e){return null;}
+  }
+
+  async function refreshLiveEvent(){
+    const state = await getRigState(serverBaseEl.value);
+    if(state?.liveEventName) liveEventEl.textContent = `LIVE event: ${state.liveEventName}`;
+  }
+
+  // show server heartbeat status in rig UI
+  const heartbeatEl = document.createElement('div');
+  heartbeatEl.className = 'text-sm text-zinc-400 mt-2';
+  document.querySelector('.max-w-4xl').prepend(heartbeatEl);
+  async function refreshHeartbeat(){
+    try{
+      const s = await getRigState(serverBaseEl.value);
+      const last = s?.lastSeen ? new Date(s.lastSeen).toLocaleTimeString() : 'never';
+      heartbeatEl.textContent = `Server: lastSeen ${last} • queued ${s?.queuedTotal||0}`;
+    }catch(e){
+      heartbeatEl.textContent='Server: unreachable';
+    }
+  }
+  setInterval(refreshHeartbeat, 8000);
+  refreshHeartbeat();
 
   // network POST helper
-  async function postLapToServer(base, key, payload){ try{ const url=(base||'') + '/api/submit-lap'; const r = await fetch(url, { method:'POST', headers: { 'Content-Type':'application/json','X-Rig-Key': key }, body: JSON.stringify(payload) }); if(!r.ok){ const txt = await r.text(); return { ok:false, status:r.status, text:txt }; } const j = await r.json(); return { ok:true, json:j }; }catch(e){ return { ok:false, err:String(e) }; } }
+  async function postLapToServer(base, key, payload){
+    try{
+      const url=(base||'') + '/api/submit-lap';
+      const r = await fetch(url, {
+        method:'POST',
+        headers: { 'Content-Type':'application/json','X-Rig-Key': key },
+        body: JSON.stringify(payload)
+      });
+      if(!r.ok){
+        const txt = await r.text();
+        return { ok:false, status:r.status, text:txt };
+      }
+      const j = await r.json();
+      return { ok:true, json:j };
+    }catch(e){
+      return { ok:false, err:String(e) };
+    }
+  }
 
-  async function flushQueued(){ const queued=loadQueued(); if(!queued.length){ netIndicator.textContent='Online'; netIndicator.style.color='#22c55e'; return; } const key = rigKeyEl.value.trim(); const base = serverBaseEl.value.trim(); let flushed=0; for(let i=0;i<queued.length;i++){ const item=queued[i]; const r=await postLapToServer(base,key,item); if(r.ok && r.json?.ok){ queued.shift(); flushed++; } else { break; } } if(flushed){ saveQueued(queued); logLine(`Flushed ${flushed} queued laps`); } updateQueuedUI(); }
+  async function flushQueued(){
+    const queued=loadQueued();
+    if(!queued.length){
+      netIndicator.textContent='Online';
+      netIndicator.style.color='#22c55e';
+      return;
+    }
+    const key = rigKeyEl.value.trim();
+    const base = serverBaseEl.value.trim();
+    let flushed=0;
+    for(let i=0;i<queued.length;i++){
+      const item=queued[i];
+      const r=await postLapToServer(base,key,item);
+      if(r.ok && r.json?.ok){
+        queued.shift();
+        flushed++;
+      } else {
+        break;
+      }
+    }
+    if(flushed){
+      saveQueued(queued);
+      logLine(`Flushed ${flushed} queued laps`);
+    }
+    updateQueuedUI();
+  }
 
-  async function handleLap(timeStr){ const d = loadDriver(); if(!d){ logLine('No driver set - ignoring lap'); return; } const state = await getRigState(serverBaseEl.value); const cfg = state?.rig || { outLaps:1, timedLaps:3 }; let s = loadSession(); if(!s){ s = { startedAt: new Date().toISOString(), outCount:0, timedCount:0, lastLapTime:null, finished:false }; }
-    if(s.outCount < Number(cfg.outLaps || 1)){ s.outCount++; s.lastLapTime = timeStr; saveSession(s); renderSession(); logLine(`Out lap ${s.outCount}/${cfg.outLaps} ignored`); return; }
-    if(s.timedCount >= Number(cfg.timedLaps || 3)){ s.finished = true; saveSession(s); renderSession(); logLine('Session already finished'); return; }
+  async function handleLap(timeStr){
+    const d = loadDriver();
+    if(!d){
+      logLine('No driver set - ignoring lap');
+      return;
+    }
+    const state = await getRigState(serverBaseEl.value);
+    const cfg = state?.rig || { outLaps:1, timedLaps:3 };
 
-    const payload = { first: d.first, last: d.last, time: timeStr, day: new Date().toLocaleDateString('en-GB',{weekday:'short'}), game: 'Assetto Corsa', car: d.car||'', track: d.track||'', cohort: d.cohort||'Guest', course: d.course||'—', createdAt: new Date().toISOString() };
-    const key = rigKeyEl.value.trim(); const base = serverBaseEl.value.trim(); const r = await postLapToServer(base,key,payload);
-    if(r.ok && r.json?.ok){ s.timedCount++; s.lastLapTime=timeStr; if(s.timedCount>= (cfg.timedLaps||3)) s.finished=true; saveSession(s); renderSession(); logLine(`Timed lap submitted (${r.json.mode})`); await flushQueued(); netIndicator.textContent='Online'; netIndicator.style.color='#22c55e'; return; }
+    let s = loadSession();
+    if(!s){
+      s = { startedAt: new Date().toISOString(), outCount:0, timedCount:0, lastLapTime:null, finished:false };
+    }
+
+    if(s.outCount < Number(cfg.outLaps || 1)){
+      s.outCount++;
+      s.lastLapTime = timeStr;
+      saveSession(s);
+      renderSession();
+      logLine(`Out lap ${s.outCount}/${cfg.outLaps} ignored`);
+      return;
+    }
+
+    if(s.timedCount >= Number(cfg.timedLaps || 3)){
+      s.finished = true;
+      saveSession(s);
+      renderSession();
+      logLine('Session already finished');
+      return;
+    }
+
+    const payload = {
+      first: d.first,
+      last: d.last,
+      time: timeStr,
+      day: new Date().toLocaleDateString('en-GB',{weekday:'short'}),
+      game: 'Assetto Corsa',
+      car: d.car||'',
+      track: d.track||'',
+      cohort: d.cohort||'Guest',
+      course: d.course||'—',
+      createdAt: new Date().toISOString()
+    };
+
+    const key = rigKeyEl.value.trim();
+    const base = serverBaseEl.value.trim();
+    const r = await postLapToServer(base,key,payload);
+
+    if(r.ok && r.json?.ok){
+      s.timedCount++;
+      s.lastLapTime=timeStr;
+      if(s.timedCount>= (cfg.timedLaps||3)) s.finished=true;
+      saveSession(s);
+      renderSession();
+      logLine(`Timed lap submitted (${r.json.mode})`);
+      await flushQueued();
+      netIndicator.textContent='Online';
+      netIndicator.style.color='#22c55e';
+      return;
+    }
+
     // else queue
-    pushQueued(payload); s.timedCount++; s.lastLapTime=timeStr; if(s.timedCount>= (cfg.timedLaps||3)) s.finished=true; saveSession(s); renderSession(); logLine('Network failure, queued offline'); netIndicator.textContent='Offline (queued)'; netIndicator.style.color='#f59e0b'; }
+    pushQueued(payload);
+    s.timedCount++;
+    s.lastLapTime=timeStr;
+    if(s.timedCount>= (cfg.timedLaps||3)) s.finished=true;
+    saveSession(s);
+    renderSession();
+    logLine('Network failure, queued offline');
+    netIndicator.textContent='Offline (queued)';
+    netIndicator.style.color='#f59e0b';
+  }
 
-  lapBtn.addEventListener('click', async ()=>{ const t = prompt('Enter lap time (m:ss.mmm or s.mmm)','1:23.456'); if(!t) return; await handleLap(t.trim()); });
-  stopBtn.addEventListener('click', ()=>{ const s = loadSession(); if(s){ s.finished=true; saveSession(s); renderSession(); logLine('Session stopped by operator'); } });
-  resetSessionBtn.addEventListener('click', ()=>{ const ok = confirm('Reset session and queued laps?'); if(!ok) return; clearSession(); saveQueued([]); updateQueuedUI(); sessionLog.innerHTML=''; closeSession(); logLine('Session reset'); });
+  lapBtn.addEventListener('click', async ()=>{
+    const t = prompt('Enter lap time (m:ss.mmm or s.mmm)','1:23.456');
+    if(!t) return;
+    await handleLap(t.trim());
+  });
 
-  saveDriverBtn.addEventListener('click', async ()=>{ const first = firstEl.value.trim(); const last = lastEl.value.trim(); if(!first || !last){ alert('Type first and last name'); return; } const d = { first, last, course: courseEl.value.trim()||'—', cohort: cohortEl.value||'Guest', car: carEl.value.trim()||'', track: trackEl.value.trim()||'', rigKey: rigKeyEl.value.trim(), serverBase: serverBaseEl.value.trim() }; saveDriver(d); clearSession(); await refreshLiveEvent(); openSession(); const state = await getRigState(serverBaseEl.value); const cfg = state?.rig || { outLaps:1, timedLaps:3 }; const s = { startedAt: new Date().toISOString(), outCount:0, timedCount:0, lastLapTime:null, finished:false, outTotal:cfg.outLaps, timedTotal:cfg.timedLaps }; saveSession(s); renderSession(); updateQueuedUI(); logLine('Session started'); });
+  stopBtn.addEventListener('click', ()=>{
+    const s = loadSession();
+    if(s){
+      s.finished=true;
+      saveSession(s);
+      renderSession();
+      logLine('Session stopped by operator');
+    }
+  });
 
-  resetDriverBtn.addEventListener('click', ()=>{ const ok = confirm('Clear saved driver info?'); if(!ok) return; clearDriver(); clearSession(); saveQueued([]); updateQueuedUI(); location.reload(); });
+  resetSessionBtn.addEventListener('click', ()=>{
+    const ok = confirm('Reset session and queued laps?');
+    if(!ok) return;
+    clearSession();
+    saveQueued([]);
+    updateQueuedUI();
+    sessionLog.innerHTML='';
+    closeSession();
+    logLine('Session reset');
+  });
 
-  [firstEl,lastEl,courseEl,cohortEl,rigKeyEl,serverBaseEl,trackEl,carEl].forEach(inp=>{ inp.addEventListener('change', ()=>{ const cur = loadDriver()||{}; cur.first = firstEl.value.trim(); cur.last = lastEl.value.trim(); cur.course = courseEl.value.trim(); cur.cohort = cohortEl.value; cur.rigKey = rigKeyEl.value.trim(); cur.serverBase = serverBaseEl.value.trim(); cur.track = trackEl.value.trim(); cur.car = carEl.value.trim(); saveDriver(cur); }); });
+  saveDriverBtn.addEventListener('click', async ()=>{
+    const first = firstEl.value.trim();
+    const last = lastEl.value.trim();
+    if(!first || !last){
+      alert('Type first and last name');
+      return;
+    }
+
+    const d = {
+      first,
+      last,
+      course: courseEl.value.trim()||'—',
+      cohort: cohortEl.value||'Guest',
+      car: carEl.value.trim()||'',
+      track: trackEl.value.trim()||'',
+      rigKey: rigKeyEl.value.trim(),
+      serverBase: serverBaseEl.value.trim()
+    };
+    saveDriver(d);
+
+    clearSession();
+    await refreshLiveEvent();
+
+    openSession();
+
+    const state = await getRigState(serverBaseEl.value);
+    const cfg = state?.rig || { outLaps:1, timedLaps:3 };
+    const s = {
+      startedAt: new Date().toISOString(),
+      outCount:0,
+      timedCount:0,
+      lastLapTime:null,
+      finished:false,
+      outTotal:cfg.outLaps,
+      timedTotal:cfg.timedLaps
+    };
+    saveSession(s);
+    renderSession();
+    updateQueuedUI();
+    logLine('Session started');
+  });
+
+  resetDriverBtn.addEventListener('click', ()=>{
+    const ok = confirm('Clear saved driver info?');
+    if(!ok) return;
+    clearDriver();
+    clearSession();
+    saveQueued([]);
+    updateQueuedUI();
+    location.reload();
+  });
+
+  [firstEl,lastEl,courseEl,cohortEl,rigKeyEl,serverBaseEl,trackEl,carEl].forEach(inp=>{
+    inp.addEventListener('change', ()=>{
+      const cur = loadDriver()||{};
+      cur.first = firstEl.value.trim();
+      cur.last = lastEl.value.trim();
+      cur.course = courseEl.value.trim();
+      cur.cohort = cohortEl.value;
+      cur.rigKey = rigKeyEl.value.trim();
+      cur.serverBase = serverBaseEl.value.trim();
+      cur.track = trackEl.value.trim();
+      cur.car = carEl.value.trim();
+      saveDriver(cur);
+    });
+  });
 
   // keyboard shortcut: press 'L' to trigger lap simulate (for quick testing)
-  document.addEventListener('keydown',(e)=>{ if(e.key==='l' || e.key==='L'){ lapBtn.focus(); lapBtn.click(); } });
+  document.addEventListener('keydown',(e)=>{
+    if(e.key==='l' || e.key==='L'){
+      lapBtn.focus();
+      lapBtn.click();
+    }
+  });
 
   // session UI helpers
-  function openSession(){ setupDiv.classList.add('hidden'); sessionDiv.classList.remove('hidden'); rigStatus.textContent='Rig: armed'; rigStatus.className='ml-auto text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500 text-amber-300'; }
-  function closeSession(){ setupDiv.classList.remove('hidden'); sessionDiv.classList.add('hidden'); rigStatus.textContent='Rig: ready'; rigStatus.className='ml-auto text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500 text-amber-300'; }
-  function renderSession(){ const d = loadDriver(); const s = loadSession(); const cfg = (async()=>{ const st = await getRigState(serverBaseEl.value); return st?.rig || { outLaps:1, timedLaps:3 }; })(); Promise.resolve(cfg).then(cfg=>{ driverNameEl.textContent = `${d.first} ${d.last}`; driverMetaEl.textContent = `${d.cohort} • ${d.course} • ${d.track||'—'} • ${d.car||'—'}`; sessionProgress.textContent = `Out lap ${s.outCount}/${cfg.outLaps} • Timed ${s.timedCount}/${cfg.timedLaps}`; sessionMode.textContent = s.finished ? 'Finished' : 'Running'; lastLapEl.textContent = s.lastLapTime || '—'; }); }
+  function openSession(){
+    setupDiv.classList.add('hidden');
+    sessionDiv.classList.remove('hidden');
+    rigStatus.textContent='Rig: armed';
+    rigStatus.className='text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/70 text-amber-200';
+  }
+
+  function closeSession(){
+    setupDiv.classList.remove('hidden');
+    sessionDiv.classList.add('hidden');
+    rigStatus.textContent='Rig: ready';
+    rigStatus.className='text-sm px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/70 text-amber-200';
+  }
+
+  function renderSession(){
+    const d = loadDriver();
+    const s = loadSession();
+    const cfg = (async()=>{
+      const st = await getRigState(serverBaseEl.value);
+      return st?.rig || { outLaps:1, timedLaps:3 };
+    })();
+
+    Promise.resolve(cfg).then(cfg=>{
+      driverNameEl.textContent = `${d.first} ${d.last}`;
+      driverMetaEl.textContent = `${d.cohort} • ${d.course} • ${d.track||'—'} • ${d.car||'—'}`;
+      sessionProgress.textContent = `Out lap ${s.outCount}/${cfg.outLaps} • Timed ${s.timedCount}/${cfg.timedLaps}`;
+      sessionMode.textContent = s.finished ? 'Finished' : 'Running';
+      lastLapEl.textContent = s.lastLapTime || '—';
+    });
+  }
 
   // periodic flush
   setInterval(async ()=>{ await flushQueued(); }, 10000);
 
   // initial restore
-  (async ()=>{ const d = loadDriver(); const s = loadSession(); if(d){ firstEl.value=d.first||''; lastEl.value=d.last||''; courseEl.value=d.course||''; cohortEl.value=d.cohort||'Guest'; rigKeyEl.value=d.rigKey||''; serverBaseEl.value=d.serverBase||''; trackEl.value=d.track||''; carEl.value=d.car||''; }
-    if(s && s.startedAt && !s.finished){ openSession(); renderSession(); } updateQueuedUI(); await refreshLiveEvent(); })();
+  (async ()=>{
+    const d = loadDriver();
+    const s = loadSession();
+
+    if(d){
+      firstEl.value=d.first||'';
+      lastEl.value=d.last||'';
+      courseEl.value=d.course||'';
+      cohortEl.value=d.cohort||'Guest';
+      rigKeyEl.value=d.rigKey||'';
+      serverBaseEl.value=d.serverBase||'';
+      trackEl.value=d.track||'';
+      carEl.value=d.car||'';
+    }
+
+    if(s && s.startedAt && !s.finished){
+      openSession();
+      renderSession();
+    }
+
+    updateQueuedUI();
+    await refreshLiveEvent();
+  })();
 })();
 </script>
 </body>
