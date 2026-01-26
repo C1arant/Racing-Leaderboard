@@ -8,387 +8,94 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 
-<body class="min-h-screen bg-zinc-950 text-zinc-100">
-  <div class="max-w-6xl mx-auto px-4 py-6">
-    <header class="flex items-center justify-between mb-6">
+<body class="min-h-screen bg-black text-white">
+  <div class="max-w-[1500px] mx-auto px-6 py-8">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
       <div class="min-w-0">
-        <h1 class="text-3xl font-extrabold tracking-tight">Racing Leaderboard — Control Desk</h1>
-        <p class="text-zinc-400 truncate">Manage events, display pins, rig submissions, and data hygiene.</p>
+        <p class="text-xs uppercase tracking-[0.35em] text-emerald-400">Racing Leaderboard</p>
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight">Lap Time Admin</h1>
+        <p class="text-emerald-200/70">Add, edit, or remove lap times. Keep it simple and accurate.</p>
       </div>
-      <nav class="flex items-center gap-3 text-sm">
-        <a href="/" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Display</a>
-        <a href="/fullscreen" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Fullscreen</a>
-        <a href="/rig" class="px-3 py-2 rounded-md bg-amber-500 text-black font-semibold hover:opacity-95">Rig UI</a>
+      <nav class="flex items-center gap-2 text-sm">
+        <a href="/" class="px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20">Display</a>
+        <a href="/fullscreen" class="px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20">Fullscreen</a>
       </nav>
     </header>
 
-    <div id="toast" class="hidden mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 px-4 py-3 text-sm"></div>
+    <div id="toast" class="hidden mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm"></div>
 
-    <div class="grid grid-cols-12 gap-4">
-      <!-- Left -->
-      <div class="col-span-12 lg:col-span-4 space-y-4">
-        <!-- Security -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-12 lg:col-span-4 space-y-6">
+        <section class="rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-black to-black p-5 shadow-lg">
           <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-lg">Security</h2>
-            <span id="pinStatus" class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-400">PIN: unknown</span>
+            <h2 class="text-lg font-semibold">Security</h2>
+            <span id="pinStatus" class="text-xs px-2 py-1 rounded-full border border-emerald-500/30 bg-black text-emerald-200/70">PIN: unknown</span>
           </div>
 
-          <label class="text-xs text-zinc-400 mt-3 block">Admin PIN</label>
-          <div class="mt-1 flex gap-2">
+          <label class="text-xs text-emerald-200/70 mt-4 block">Admin PIN</label>
+          <div class="mt-2 flex gap-2">
             <input id="pin" type="password" placeholder="Enter PIN"
-              class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            <button id="savePin" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
+              class="w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
+            <button id="savePin" class="px-4 py-2 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400">
               Save
             </button>
           </div>
-        </div>
+        </section>
 
-        <!-- Events -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-lg">Events</h2>
-            <span class="text-xs px-2 py-1 rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
-              LIVE: <span id="liveEventName">—</span>
-            </span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2">
-            <input id="newEventName" placeholder="New event name"
-              class="col-span-2 bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            <button id="createEvent" class="rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 px-3 py-2">
-              Create
-            </button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Set LIVE event</label>
-            <div class="mt-1 flex gap-2">
-              <select id="liveEventSelect" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
-              <button id="setLive" class="px-4 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">Set</button>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Best per driver</p>
-              <p class="text-xs text-zinc-500">Recommended for clean boards.</p>
-            </div>
-            <button id="bestToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
-          </div>
-
-          <button id="applySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-            Apply Settings
-          </button>
-        </div>
-
-        <!-- Fullscreen pin -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Fullscreen (Pinned)</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Follow LIVE event</p>
-              <p class="text-xs text-zinc-500">If ON, fullscreen always shows the live event.</p>
-            </div>
-            <button id="followLiveToggle" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">ON</button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Fullscreen event</label>
-            <select id="fsEventSelect" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600"></select>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Fullscreen game view</label>
-            <select id="fsGame" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-              <option value="">Mixed</option>
-              <option value="Assetto Corsa">Assetto Corsa</option>
-              <option value="F1 25">F1 25</option>
-            </select>
-          </div>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Allow TV cycle override</p>
-              <p class="text-xs text-zinc-500">Only if you want auto-rotation.</p>
-            </div>
-            <button id="tvOverrideToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <button id="applyFullscreen" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-            Apply Fullscreen Pin
-          </button>
-
-          <button id="resetPinnedEvent" class="w-full px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-            Reset Pinned Event Board (scores + attempts)
-          </button>
-        </div>
-
-        <!-- Rig Controls -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Rig Controls</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Enable rig submissions</p>
-              <p class="text-xs text-zinc-500">Allow rig PCs to POST laps using a shared `RIG_KEY`.</p>
-            </div>
-            <button id="rigToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Timed laps</label>
-              <input id="rigTimedLaps" type="number" min="1" value="3"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Out laps</label>
-              <input id="rigOutLaps" type="number" min="0" value="1"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-          </div>
-
-          <div class="mt-3 flex gap-2 items-center">
-            <input id="rigFlushFile" type="file" accept=".json" class="text-xs text-zinc-400" aria-label="Upload pending laps JSON" />
-            <button id="rigFlushBtn" class="px-3 py-2 rounded-xl bg-white text-black font-semibold">Flush Pending</button>
-            <span id="rigFlushHint" class="text-xs text-zinc-500">Upload a `pending_laps.json` from a rig to import queued laps.</span>
-          </div>
-        </div>
-
-        <!-- Tools -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Presets</h2>
-          <p class="text-xs text-zinc-400">Quick-apply display modes for different scenarios.</p>
-
-          <div class="grid grid-cols-2 gap-2">
-            <button id="presetOpenDay" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Open Day
-            </button>
-            <button id="presetTournament" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Tournament
-            </button>
-            <button id="presetTeaching" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Teaching
-            </button>
-            <button id="presetMarketing" class="px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Marketing
-            </button>
-          </div>
-
-          <div class="border-t border-zinc-800 pt-3"></div>
-
-          <!-- Lecturer mode -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Lecturer Mode</p>
-              <p class="text-xs text-zinc-500">Hide last names, show tags.</p>
-            </div>
-            <button id="lecturerToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Name display mode</label>
-            <select id="nameMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-              <option value="FULL">Full name</option>
-              <option value="FIRST_INITIAL">First initial + last</option>
-              <option value="FIRST_LAST_INITIAL">First + last initial</option>
-            </select>
-          </div>
-
-          <!-- Auto-scroll -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
-            <div>
-              <p class="font-semibold">Auto-scroll (Fullscreen)</p>
-              <p class="text-xs text-zinc-500">Slow broadcast crawl.</p>
-            </div>
-            <button id="autoScrollToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Scroll rate (ms)</label>
-              <input id="autoScrollRate" value="15000" type="number" min="1000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Pause (ms)</label>
-              <input id="autoScrollPause" value="2000" type="number" min="500"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-          </div>
-
-          <!-- Spotlight -->
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 mt-3">
-            <div>
-              <p class="font-semibold">Spotlight Mode (Fullscreen)</p>
-              <p class="text-xs text-zinc-500">Highlight driver every N seconds.</p>
-            </div>
-            <button id="spotlightToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Spotlight rate (ms)</label>
-              <input id="spotlightRate" value="10000" type="number" min="2000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div>
-              <label class="text-xs text-zinc-400">Mode</label>
-              <select id="spotlightMode" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-                <option value="recent">Recent attempt</option>
-                <option value="random">Random top 20</option>
-                <option value="improved">Most improved</option>
-              </select>
-            </div>
-          </div>
-
-          <button id="applyDisplaySettings" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200 mt-3">
-            Apply Display Settings
-          </button>
-        </div>
-
-        <!-- Tools -->
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
-          <h2 class="font-semibold text-lg">Tools</h2>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">Demo mode</p>
-              <p class="text-xs text-zinc-500">Auto-add demo attempts into LIVE event.</p>
-            </div>
-            <button id="demoToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="text-xs text-zinc-400">Demo rate (ms)</label>
-              <input id="demoRate" value="4000"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-            </div>
-            <div class="flex items-end">
-              <button id="demoSeed" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-                Seed 18
-              </button>
-            </div>
-          </div>
-
-          <button id="clearDemo" class="w-full px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
-            Clear Demo Data
-          </button>
-
-          <div class="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2">
-            <div>
-              <p class="font-semibold">TV cycle</p>
-              <p class="text-xs text-zinc-500">Broadcast game rotation signal.</p>
-            </div>
-            <button id="tvToggle" class="px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800">Off</button>
-          </div>
-
-          <div>
-            <label class="text-xs text-zinc-400">Cycle rate (ms)</label>
-            <input id="tvRate" value="15000"
-              class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-          </div>
-
-          <!-- CLEANUP -->
-          <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3 space-y-2">
-            <div class="flex items-center justify-between">
-              <div>
-                <p class="font-semibold">Cleanup</p>
-                <p class="text-xs text-zinc-500">Keeps attempts.json from growing forever.</p>
-              </div>
-              <span class="text-xs text-zinc-400" id="cleanupHint">—</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-xs text-zinc-400">Older than (days)</label>
-                <input id="cleanupDays" value="90"
-                  class="mt-1 w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-              </div>
-              <div class="flex items-end">
-                <button id="cleanupRun" class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-                  Run Cleanup
-                </button>
-              </div>
-            </div>
-
-            <label class="flex items-center gap-2 text-sm text-zinc-300">
-              <input id="cleanupAlsoScores" type="checkbox" class="accent-white" />
-              Also delete leaderboard rows older than N days
-            </label>
-
-            <p class="text-xs text-zinc-500">
-              Default only removes <b>attempt history</b>. If you tick the box, it can also remove old leaderboard rows.
-            </p>
-          </div>
-
-          <!-- Danger: clear all -->
-          <button id="clearAll" class="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-red-700/60 text-red-200 hover:bg-red-950/40">
-            Clear EVERYTHING (nuke)
-          </button>
-        </div>
-      </div>
-
-      <!-- Middle: add lap -->
-      <div class="col-span-12 lg:col-span-4">
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-          <h2 class="font-semibold text-lg mb-3">Add lap (to LIVE event)</h2>
-
-          <div class="text-xs text-zinc-400 mb-3">
-            LIVE event: <span id="liveEventName2" class="font-semibold text-zinc-200">—</span>
+        <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="formTitle" class="text-lg font-semibold">Add Lap</h2>
+            <span id="editBadge" class="hidden text-xs rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-emerald-100">Editing</span>
           </div>
 
           <form id="scoreForm" class="space-y-3">
+            <div id="editBanner" class="hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+              Editing <span id="editName" class="font-semibold"></span>
+              <button id="cancelEdit" type="button" class="ml-2 underline underline-offset-2 hover:text-white">Cancel</button>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="text-xs text-zinc-400">First</label>
-                <input id="first" required class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                <label class="text-xs text-emerald-200/70">First</label>
+                <input id="first" required class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
               </div>
               <div>
-                <label class="text-xs text-zinc-400">Last</label>
-                <input id="last" required class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                <label class="text-xs text-emerald-200/70">Last</label>
+                <input id="last" required class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
               </div>
             </div>
 
             <div>
-              <label class="text-xs text-zinc-400">Lap time (m:ss.mmm)</label>
+              <label class="text-xs text-emerald-200/70">Lap time (m:ss.mmm)</label>
               <input id="time" required placeholder="1:23.456"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-xs text-zinc-400">Game</label>
-                <select id="game" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-                  <option>Assetto Corsa</option>
-                  <option>F1 25</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400">Day</label>
-                <input id="day" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+            <input id="game" type="hidden" value="Assetto Corsa" />
+
+            <div>
+              <label class="text-xs text-emerald-200/70">Day</label>
+              <div class="mt-1 flex gap-2">
+                <input id="day" class="w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
+                <button id="setToday" type="button" class="px-3 py-2 rounded-xl border border-emerald-500/40 text-emerald-100 hover:bg-emerald-500/10">Today</button>
               </div>
             </div>
 
             <div>
-              <label class="text-xs text-zinc-400">Track</label>
+              <label class="text-xs text-emerald-200/70">Track</label>
               <input id="track" required
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
             </div>
 
             <div>
-              <label class="text-xs text-zinc-400">Car</label>
+              <label class="text-xs text-emerald-200/70">Car</label>
               <input id="car"
-                class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
             </div>
 
             <div class="grid grid-cols-2 gap-2">
               <div>
-                <label class="text-xs text-zinc-400">Cohort tag</label>
-                <select id="cohort" class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
+                <label class="text-xs text-emerald-200/70">Cohort</label>
+                <select id="cohort" class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60">
                   <option>Guest</option>
                   <option>Staff</option>
                   <option>Y1</option>
@@ -397,31 +104,30 @@
                 </select>
               </div>
               <div>
-                <label class="text-xs text-zinc-400">Course</label>
+                <label class="text-xs text-emerald-200/70">Course</label>
                 <input id="course" placeholder="Games / Computing / Animation"
-                  class="mt-1 w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
+                  class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
               </div>
             </div>
 
-            <button class="w-full px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200">
-              Submit
+            <button id="submitButton" class="w-full px-3 py-2 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400">
+              Submit Lap
             </button>
 
-            <p id="submitHint" class="text-xs text-zinc-500"></p>
+            <p id="submitHint" class="text-xs text-emerald-200/60"></p>
           </form>
-        </div>
+        </section>
       </div>
 
-      <!-- Right: leaderboard rows for pinned event -->
-      <div class="col-span-12 lg:col-span-4">
-        <div class="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <div class="col-span-12 lg:col-span-8">
+        <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
           <div class="flex items-center justify-between mb-3">
-            <h2 class="font-semibold text-lg">Pinned Event Rows (Leaderboard)</h2>
-            <span class="text-xs text-zinc-400" id="pinnedSummary">—</span>
+            <h2 class="text-lg font-semibold">Leaderboard Entries</h2>
+            <span class="text-xs text-emerald-200/70" id="entryCount">0 entries</span>
           </div>
 
-          <div id="entryList" class="space-y-2 max-h-[720px] overflow-auto pr-1"></div>
-        </div>
+          <div id="entryList" class="space-y-2 max-h-[780px] overflow-auto pr-1"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -433,9 +139,9 @@
   function showToast(msg, ok=true) {
     toast.textContent = msg;
     toast.classList.remove("hidden");
-    toast.className = "mb-4 rounded-2xl border bg-zinc-900/60 px-4 py-3 text-sm " + (ok
-      ? "border-emerald-700/40 text-emerald-200"
-      : "border-red-700/40 text-red-200");
+    toast.className = "mb-6 rounded-2xl border bg-black px-4 py-3 text-sm " + (ok
+      ? "border-emerald-500/40 text-emerald-200"
+      : "border-white/30 text-white");
     setTimeout(() => toast.classList.add("hidden"), 3500);
   }
 
@@ -457,407 +163,35 @@
   socket.on("adminPingResult", ({ ok }) => {
     pinStatus.textContent = ok ? "PIN: OK" : "PIN: WRONG";
     pinStatus.className = ok
-      ? "text-xs px-2 py-1 rounded-full border border-emerald-700/40 bg-emerald-500/10 text-emerald-200"
-      : "text-xs px-2 py-1 rounded-full border border-red-700/40 bg-red-500/10 text-red-200";
+      ? "text-xs px-2 py-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+      : "text-xs px-2 py-1 rounded-full border border-white/30 bg-black text-white";
   });
 
-  // Settings + events
-  let settings = null;
+  // Data
   let scores = [];
+  let ratings = {};
 
-  const liveEventName = document.getElementById("liveEventName");
-  const liveEventName2 = document.getElementById("liveEventName2");
-  const newEventName = document.getElementById("newEventName");
-  const createEventBtn = document.getElementById("createEvent");
-  const liveEventSelect = document.getElementById("liveEventSelect");
-  const setLiveBtn = document.getElementById("setLive");
+  const entryCount = document.getElementById("entryCount");
+  const entryList = document.getElementById("entryList");
 
-  const bestToggle = document.getElementById("bestToggle");
-  const applySettings = document.getElementById("applySettings");
+  const scoreForm = document.getElementById("scoreForm");
+  const submitHint = document.getElementById("submitHint");
+  const setToday = document.getElementById("setToday");
+  const dayInput = document.getElementById("day");
+  const formTitle = document.getElementById("formTitle");
+  const submitButton = document.getElementById("submitButton");
+  const editBadge = document.getElementById("editBadge");
+  const editBanner = document.getElementById("editBanner");
+  const editName = document.getElementById("editName");
+  const cancelEdit = document.getElementById("cancelEdit");
 
-  const followLiveToggle = document.getElementById("followLiveToggle");
-  const fsEventSelect = document.getElementById("fsEventSelect");
-  const fsGame = document.getElementById("fsGame");
-  const tvOverrideToggle = document.getElementById("tvOverrideToggle");
-  const applyFullscreen = document.getElementById("applyFullscreen");
-  const resetPinnedEvent = document.getElementById("resetPinnedEvent");
-
-  const demoToggle = document.getElementById("demoToggle");
-  const demoSeed = document.getElementById("demoSeed");
-  const demoRate = document.getElementById("demoRate");
-  const clearDemo = document.getElementById("clearDemo");
-
-  const tvToggle = document.getElementById("tvToggle");
-  const tvRate = document.getElementById("tvRate");
-  const clearAll = document.getElementById("clearAll");
-
-  // New features
-  const lecturerToggle = document.getElementById("lecturerToggle");
-  const nameMode = document.getElementById("nameMode");
-  const autoScrollToggle = document.getElementById("autoScrollToggle");
-  const autoScrollRate = document.getElementById("autoScrollRate");
-  const autoScrollPause = document.getElementById("autoScrollPause");
-  const spotlightToggle = document.getElementById("spotlightToggle");
-  const spotlightRate = document.getElementById("spotlightRate");
-  const spotlightMode = document.getElementById("spotlightMode");
-  const applyDisplaySettings = document.getElementById("applyDisplaySettings");
-
-  const presetOpenDay = document.getElementById("presetOpenDay");
-  const presetTournament = document.getElementById("presetTournament");
-  const presetTeaching = document.getElementById("presetTeaching");
-  const presetMarketing = document.getElementById("presetMarketing");
-
-  // Rig controls
-  const rigToggle = document.getElementById("rigToggle");
-  const rigTimedLaps = document.getElementById("rigTimedLaps");
-  const rigOutLaps = document.getElementById("rigOutLaps");
-  const rigFlushFile = document.getElementById("rigFlushFile");
-  const rigFlushBtn = document.getElementById("rigFlushBtn");
-  const rigFlushHint = document.getElementById("rigFlushHint");
-
-  // Cleanup UI
-  const cleanupHint = document.getElementById("cleanupHint");
-  const cleanupDays = document.getElementById("cleanupDays");
-  const cleanupAlsoScores = document.getElementById("cleanupAlsoScores");
-  const cleanupRun = document.getElementById("cleanupRun");
+  let editId = null;
 
   function escapeHtml(s) {
     return String(s ?? "")
       .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
       .replaceAll('"',"&quot;").replaceAll("'","&#039;");
   }
-
-  function renderEventOptions() {
-    const evs = settings?.events || [];
-    const liveId = settings?.liveEventId;
-
-    liveEventSelect.innerHTML = evs.map(e => `
-      <option value="${escapeHtml(e.id)}" ${e.id === liveId ? "selected" : ""}>${escapeHtml(e.name)}</option>
-    `).join("");
-
-    fsEventSelect.innerHTML = evs.map(e => `
-      <option value="${escapeHtml(e.id)}" ${e.id === settings?.fullscreen?.eventId ? "selected" : ""}>${escapeHtml(e.name)}</option>
-    `).join("");
-  }
-
-  function refreshUI() {
-    if (!settings) return;
-
-    liveEventName.textContent = settings.liveEventName || "—";
-    liveEventName2.textContent = settings.liveEventName || "—";
-
-    bestToggle.textContent = settings.bestPerDriver ? "ON" : "OFF";
-    bestToggle.className = settings.bestPerDriver
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    followLiveToggle.textContent = settings.fullscreen?.followLiveEvent ? "ON" : "OFF";
-    followLiveToggle.className = settings.fullscreen?.followLiveEvent
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    tvOverrideToggle.textContent = settings.fullscreen?.useTvCycle ? "On" : "Off";
-    tvOverrideToggle.className = settings.fullscreen?.useTvCycle
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    fsGame.value = settings.fullscreen?.game ?? "";
-
-    demoRate.value = settings.demoRateMs ?? 4000;
-    demoToggle.textContent = settings.demoEnabled ? "On" : "Off";
-    demoToggle.className = settings.demoEnabled
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    tvRate.value = settings.tvCycleRateMs ?? 15000;
-    tvToggle.textContent = settings.tvCycleEnabled ? "On" : "Off";
-    tvToggle.className = settings.tvCycleEnabled
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    // New features
-    lecturerToggle.textContent = settings.lecturerMode ? "On" : "Off";
-    lecturerToggle.className = settings.lecturerMode
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-
-    nameMode.value = settings.privacy?.nameMode || "FULL";
-
-    autoScrollToggle.textContent = settings.autoScroll ? "On" : "Off";
-    autoScrollToggle.className = settings.autoScroll
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-    autoScrollRate.value = settings.autoScrollRateMs ?? 15000;
-    autoScrollPause.value = settings.autoScrollPauseMs ?? 2000;
-
-    spotlightToggle.textContent = settings.spotlight ? "On" : "Off";
-    spotlightToggle.className = settings.spotlight
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-    spotlightRate.value = settings.spotlightRateMs ?? 10000;
-    spotlightMode.value = settings.spotlightMode || "recent";
-
-    cleanupHint.textContent = "Attempts cleanup";
-    renderEventOptions();
-    renderPinnedList();
-    // rig UI
-    if (typeof refreshRigUI === "function") refreshRigUI();
-  }
-
-  // Events actions
-  createEventBtn.addEventListener("click", () => {
-    const name = newEventName.value.trim();
-    if (!name) return showToast("Type an event name first.", false);
-    socket.emit("adminCreateEvent", { pin: getPin(), name });
-    newEventName.value = "";
-  });
-
-  setLiveBtn.addEventListener("click", () => {
-    socket.emit("adminSetLiveEvent", { pin: getPin(), eventId: liveEventSelect.value });
-  });
-
-  // Settings
-  bestToggle.addEventListener("click", () => {
-    settings.bestPerDriver = !settings.bestPerDriver;
-    refreshUI();
-  });
-
-  applySettings.addEventListener("click", () => {
-    socket.emit("adminUpdateSettings", { pin: getPin(), patch: { bestPerDriver: settings.bestPerDriver } });
-  });
-
-  // Fullscreen pin
-  followLiveToggle.addEventListener("click", () => {
-    settings.fullscreen.followLiveEvent = !settings.fullscreen.followLiveEvent;
-    refreshUI();
-  });
-
-  tvOverrideToggle.addEventListener("click", () => {
-    settings.fullscreen.useTvCycle = !settings.fullscreen.useTvCycle;
-    refreshUI();
-  });
-
-  applyFullscreen.addEventListener("click", () => {
-    socket.emit("adminSetFullscreen", {
-      pin: getPin(),
-      patch: {
-        followLiveEvent: settings.fullscreen.followLiveEvent,
-        useTvCycle: settings.fullscreen.useTvCycle,
-        eventId: fsEventSelect.value,
-        game: fsGame.value
-      }
-    });
-  });
-
-  resetPinnedEvent.addEventListener("click", () => {
-    const ok = confirm("Reset pinned event board?\nThis clears BOTH leaderboard rows and attempts for that event.");
-    if (!ok) return;
-    const eid = settings.fullscreen.followLiveEvent ? settings.liveEventId : fsEventSelect.value;
-    socket.emit("adminResetEventBoard", { pin: getPin(), eventId: eid });
-  });
-
-  // Demo
-  demoToggle.addEventListener("click", () => {
-    socket.emit("adminDemo", { pin: getPin(), enabled: !settings.demoEnabled, seed:false, rateMs: Number(demoRate.value || 4000) });
-  });
-  demoSeed.addEventListener("click", (e) => {
-    e.preventDefault();
-    socket.emit("adminDemo", { pin: getPin(), enabled: true, seed:true, rateMs: Number(demoRate.value || 4000) });
-  });
-  clearDemo.addEventListener("click", () => {
-    const ok = confirm("Clear demo data?");
-    if (!ok) return;
-    socket.emit("adminClearDemo", { pin: getPin() });
-  });
-
-  // TV cycle
-  tvToggle.addEventListener("click", () => {
-    socket.emit("adminTvCycle", { pin: getPin(), enabled: !settings.tvCycleEnabled, rateMs: Number(tvRate.value || 15000) });
-  });
-
-  // Lecturer mode & display settings
-  lecturerToggle.addEventListener("click", () => {
-    settings.lecturerMode = !settings.lecturerMode;
-    refreshUI();
-  });
-
-  autoScrollToggle.addEventListener("click", () => {
-    settings.autoScroll = !settings.autoScroll;
-    refreshUI();
-  });
-
-  spotlightToggle.addEventListener("click", () => {
-    settings.spotlight = !settings.spotlight;
-    refreshUI();
-  });
-
-  applyDisplaySettings.addEventListener("click", () => {
-    socket.emit("adminLecturerMode", {
-      pin: getPin(),
-      patch: {
-        lecturerMode: settings.lecturerMode,
-        privacy: { nameMode: nameMode.value }
-      }
-    });
-    socket.emit("adminAutoScroll", {
-      pin: getPin(),
-      enabled: settings.autoScroll,
-      rateMs: Number(autoScrollRate.value || 15000),
-      pauseMs: Number(autoScrollPause.value || 2000)
-    });
-    socket.emit("adminSpotlight", {
-      pin: getPin(),
-      enabled: settings.spotlight,
-      rateMs: Number(spotlightRate.value || 10000),
-      mode: spotlightMode.value
-    });
-  });
-
-  // Rig control handlers
-  function refreshRigUI() {
-    if (!settings) return;
-    const rig = settings.rig || { enabled: false, timedLaps: 3, outLaps: 1 };
-    rigToggle.textContent = rig.enabled ? "On" : "Off";
-    rigToggle.className = rig.enabled
-      ? "px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-zinc-200"
-      : "px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900 hover:bg-zinc-800";
-    rigTimedLaps.value = rig.timedLaps || 3;
-    rigOutLaps.value = rig.outLaps || 1;
-  }
-
-  rigToggle.addEventListener("click", () => {
-    const newVal = !(settings?.rig?.enabled);
-    socket.emit("adminRigSettings", { pin: getPin(), patch: { enabled: newVal } });
-  });
-
-  rigTimedLaps.addEventListener("change", () => {
-    const v = Number(rigTimedLaps.value || 3);
-    socket.emit("adminRigSettings", { pin: getPin(), patch: { timedLaps: v } });
-  });
-  rigOutLaps.addEventListener("change", () => {
-    const v = Number(rigOutLaps.value || 1);
-    socket.emit("adminRigSettings", { pin: getPin(), patch: { outLaps: v } });
-  });
-
-  rigFlushBtn.addEventListener("click", async () => {
-    const file = rigFlushFile.files && rigFlushFile.files[0];
-    if (!file) return showToast("Choose a pending_laps.json file first.", false);
-    const text = await file.text();
-    let parsed;
-    try { parsed = JSON.parse(text); } catch (e) { return showToast("Invalid JSON file.", false); }
-    try {
-      const resp = await fetch("/api/rig/flush", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Pin": getPin() },
-        body: JSON.stringify(parsed)
-      });
-      const j = await resp.json();
-      if (j?.ok) {
-        showToast(`Imported ${j.imported || 0} laps.`, true);
-      } else {
-        showToast(`Flush failed: ${j.reason || 'error'}`, false);
-      }
-    } catch (e) {
-      showToast("Network error during flush.", false);
-    }
-  });
-
-  // Presets
-  presetOpenDay.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "openDay" });
-  });
-  presetTournament.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "tournament" });
-  });
-  presetTeaching.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "teaching" });
-  });
-  presetMarketing.addEventListener("click", () => {
-    socket.emit("adminPreset", { pin: getPin(), preset: "marketing" });
-  });
-
-  // Cleanup
-  cleanupRun.addEventListener("click", (e) => {
-    e.preventDefault();
-    const days = Number(cleanupDays.value || 90);
-    if (!Number.isFinite(days) || days <= 0) return showToast("Cleanup days must be a positive number.", false);
-
-    const alsoScores = !!cleanupAlsoScores.checked;
-    const ok = confirm(
-      `Run cleanup?\n\nRemove attempts older than ${days} days.` +
-      (alsoScores ? `\nAlso remove leaderboard rows older than ${days} days.` : "") +
-      `\n\nThis is irreversible.`
-    );
-    if (!ok) return;
-
-    socket.emit("adminCleanup", { pin: getPin(), olderThanDays: days, alsoScores });
-  });
-
-  // Clear all
-  clearAll.addEventListener("click", () => {
-    const ok = confirm("NUKE EVERYTHING? scores + attempts.\nThis is irreversible.");
-    if (!ok) return;
-    socket.emit("adminClearAll", { pin: getPin() });
-  });
-
-  // Add lap
-  const form = document.getElementById("scoreForm");
-  const submitHint = document.getElementById("submitHint");
-  const day = document.getElementById("day");
-
-  if (!day.value) {
-    const d = new Date();
-    const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-    day.value = days[d.getDay()];
-  }
-
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if (!settings?.liveEventId) return;
-
-    socket.emit("newScore", {
-      first: document.getElementById("first").value.trim(),
-      last: document.getElementById("last").value.trim(),
-      time: document.getElementById("time").value.trim(),
-      game: document.getElementById("game").value,
-      day: document.getElementById("day").value.trim(),
-      track: document.getElementById("track").value.trim(),
-      car: document.getElementById("car").value.trim(),
-      cohort: document.getElementById("cohort").value,
-      course: document.getElementById("course").value.trim(),
-      eventId: settings.liveEventId,
-      createdAt: new Date().toISOString()
-    });
-  });
-
-  socket.on("submitResult", (r) => {
-    if (r?.ok) {
-      submitHint.textContent = r.mode === "replaced" ? "PB updated (replaced existing row)." : "Submitted (new row).";
-      form.reset();
-      const d = new Date();
-      const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-      document.getElementById("day").value = days[d.getDay()];
-    } else {
-      if (r?.reason === "not_better") submitHint.textContent = "Attempt logged, but not better than PB (leaderboard unchanged).";
-      else if (r?.reason === "duplicate") submitHint.textContent = "Ignored: duplicate spam attempt.";
-      else submitHint.textContent = "Rejected: invalid fields.";
-    }
-  });
-
-  // Pinned list (leaderboard rows only)
-  const entryList = document.getElementById("entryList");
-  const pinnedSummary = document.getElementById("pinnedSummary");
-
-  entryList.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-del]");
-    if (!btn) return;
-
-    const id = btn.getAttribute("data-del");
-    const ok = confirm("Delete this leaderboard row? (Does not remove attempts history.)");
-    if (!ok) return;
-
-    socket.emit("adminDeleteScore", { pin: getPin(), id });
-  });
 
   function timeToMs(t) {
     const str = String(t).trim();
@@ -873,81 +207,170 @@
     return Infinity;
   }
 
-  function currentPinnedEventId() {
-    return settings.fullscreen?.followLiveEvent ? settings.liveEventId : settings.fullscreen?.eventId;
+  function getRatingKey(game, first, last) {
+    return `${String(game).trim()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
   }
 
-  function renderPinnedList() {
-    if (!settings) return;
+  function ratingLabel(entry) {
+    const key = getRatingKey(entry.game, entry.first, entry.last);
+    const rating = ratings[key];
+    if (!rating) return "—";
+    const delta = rating.lastChange;
+    const prefix = delta > 0 ? `+${delta}` : `${delta}`;
+    return `${rating.rating} (${prefix})`;
+  }
 
-    const eid = currentPinnedEventId();
-    const pinnedName = settings.events.find(e => e.id === eid)?.name || "—";
-    pinnedSummary.textContent = pinnedName;
+  function renderEntries() {
+    const list = scores.slice().sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
 
-    const list = scores.filter(s => s.eventId === eid)
-      .slice()
-      .sort((a,b) => timeToMs(a.time) - timeToMs(b.time))
-      .slice(0, 60);
-
-    entryList.innerHTML = list.map(s => `
-      <div class="rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
-        <div class="flex items-start justify-between gap-2">
-          <div class="min-w-0">
-            <div class="font-semibold truncate">${escapeHtml(s.first)} ${escapeHtml(s.last)}</div>
-            <div class="text-sm text-zinc-300 truncate">${escapeHtml(s.time)} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)} • ${escapeHtml(s.car || "—")}</div>
-            <div class="text-xs text-zinc-500 truncate">${escapeHtml(s.cohort || "Guest")} / ${escapeHtml(s.course || "—")}</div>
+    entryCount.textContent = `${list.length} entries`;
+    entryList.innerHTML = list.map((s, idx) => {
+      return `
+        <div class="flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-black px-4 py-3">
+          <div>
+            <div class="text-sm text-emerald-200/70">#${idx + 1} • ${escapeHtml(s.track)}</div>
+            <div class="font-semibold text-white">${escapeHtml(`${s.first} ${s.last}`)}</div>
+            <div class="text-xs text-emerald-200/60">${escapeHtml(s.time)} • ${escapeHtml(s.car || "—")} • DR ${escapeHtml(ratingLabel(s))}</div>
           </div>
-          <button type="button" data-del="${escapeHtml(s.id)}"
-  class="shrink-0 px-3 py-2 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-500">
-  Delete
-</button>
+          <div class="flex items-center gap-2">
+            <button class="text-xs text-emerald-200 hover:text-emerald-100" data-edit="${escapeHtml(s.id)}">Edit</button>
+            <button class="text-xs text-white/80 hover:text-white" data-delete="${escapeHtml(s.id)}">Delete</button>
+          </div>
         </div>
-      </div>
-    `).join("") || `<div class="text-zinc-500 text-sm">No rows for pinned event.</div>`;
+      `;
+    }).join("");
+
+    entryList.querySelectorAll("button[data-delete]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-delete");
+        if (!confirm("Delete this leaderboard entry?")) return;
+        socket.emit("adminDeleteScore", { pin: getPin(), id });
+      });
+    });
+
+    entryList.querySelectorAll("button[data-edit]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-edit");
+        const entry = scores.find(row => row.id === id);
+        if (!entry) return;
+        editId = id;
+        formTitle.textContent = "Edit Lap";
+        submitButton.textContent = "Save Changes";
+        editBadge.classList.remove("hidden");
+        editBanner.classList.remove("hidden");
+        editName.textContent = `${entry.first} ${entry.last}`.trim();
+
+        document.getElementById("first").value = entry.first || "";
+        document.getElementById("last").value = entry.last || "";
+        document.getElementById("time").value = entry.time || "";
+        document.getElementById("day").value = entry.day || "";
+        document.getElementById("car").value = entry.car || "";
+        document.getElementById("track").value = entry.track || "";
+        document.getElementById("cohort").value = entry.cohort || "Guest";
+        document.getElementById("course").value = entry.course || "";
+      });
+    });
   }
 
-  // Socket events
-  socket.on("loadScores", (existing) => {
-    scores = Array.isArray(existing) ? existing : [];
-    pingPin();
-    renderPinnedList();
+  function clearEdit() {
+    editId = null;
+    formTitle.textContent = "Add Lap";
+    submitButton.textContent = "Submit Lap";
+    editBadge.classList.add("hidden");
+    editBanner.classList.add("hidden");
+    editName.textContent = "";
+  }
+
+  cancelEdit.addEventListener("click", () => {
+    clearEdit();
+    scoreForm.reset();
+    document.getElementById("game").value = "Assetto Corsa";
   });
 
-  socket.on("settingsUpdate", (s) => {
-    settings = s;
-    settings.fullscreen ||= { eventId: "evt_default", game: "", followLiveEvent: true, useTvCycle: false };
-    refreshUI();
+  function setDayToday() {
+    dayInput.value = new Date().toLocaleDateString("en-GB", { weekday: "short" });
+  }
+
+  setToday.addEventListener("click", setDayToday);
+
+  scoreForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const payload = {
+      first: document.getElementById("first").value,
+      last: document.getElementById("last").value,
+      time: document.getElementById("time").value,
+      day: document.getElementById("day").value,
+      game: document.getElementById("game").value,
+      car: document.getElementById("car").value,
+      track: document.getElementById("track").value,
+      cohort: document.getElementById("cohort").value,
+      course: document.getElementById("course").value,
+      eventId: "evt_default"
+    };
+    if (editId) {
+      socket.emit("adminUpdateScore", { pin: getPin(), id: editId, ...payload });
+    } else {
+      socket.emit("newScore", payload);
+    }
   });
 
-  socket.on("scoreUpdate", (s) => { scores.push(s); renderPinnedList(); });
-  socket.on("scoreReplace", (s) => {
-    const idx = scores.findIndex(x => x.id === s.id);
-    if (idx !== -1) scores[idx] = s; else scores.push(s);
-    renderPinnedList();
+  socket.on("submitResult", (res) => {
+    if (res.ok) {
+      submitHint.textContent = `Lap stored (${res.mode}). DR ${res.ratingDelta >= 0 ? "+" : ""}${res.ratingDelta || 0}.`;
+      document.getElementById("time").value = "";
+      document.getElementById("car").value = "";
+      document.getElementById("track").value = "";
+      document.getElementById("day").value = "";
+    } else {
+      submitHint.textContent = res.reason === "not_better" ? "Not faster than existing time." : "Invalid entry.";
+    }
   });
 
-  socket.on("deleteScore", ({ id }) => { scores = scores.filter(s => s.id !== id); renderPinnedList(); });
-  socket.on("clearAll", () => { scores = []; renderPinnedList(); });
-  socket.on("clearEvent", ({ eventId }) => { scores = scores.filter(s => s.eventId !== eventId); renderPinnedList(); });
-  socket.on("clearDemo", () => { scores = scores.filter(s => !s.demo); renderPinnedList(); });
-
-  socket.on("adminResult", (r) => {
-    if (!r?.ok) {
-      showToast(`Denied. Wrong PIN (action: ${r.action}).`, false);
-      pingPin();
+  socket.on("adminResult", (res) => {
+    if (!res.ok) {
+      showToast("Admin action failed: " + (res.reason || "unknown"), false);
       return;
     }
-
-    if (r.action === "createEvent") showToast("Event created.", true);
-    else if (r.action === "setLiveEvent") showToast("LIVE event set.", true);
-    else if (r.action === "resetEventBoard") showToast(`Reset event board. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
-    else if (r.action === "clearDemo") showToast(`Cleared demo. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
-    else if (r.action === "cleanup") showToast(`Cleanup done. Removed attempts=${r.removedAttempts}` + (typeof r.removedScores === "number" ? `, rows=${r.removedScores}` : ""), true);
-    else if (r.action === "clearAll") showToast(`Cleared EVERYTHING. Removed rows=${r.removedScores}, attempts=${r.removedAttempts}`, true);
-    else showToast(`OK: ${r.action}`, true);
-
-    pingPin();
+    if (res.action === "updateScore") {
+      showToast("Lap time updated.", true);
+      clearEdit();
+      scoreForm.reset();
+      document.getElementById("game").value = "Assetto Corsa";
+    } else if (res.action === "deleteScore") {
+      showToast("Lap removed.", true);
+    } else {
+      showToast("Action completed.", true);
+    }
   });
+
+  socket.on("loadScores", (list) => {
+    scores = Array.isArray(list) ? list : [];
+    renderEntries();
+  });
+
+  socket.on("scoreUpdate", (row) => {
+    scores.push(row);
+    renderEntries();
+  });
+
+  socket.on("scoreReplace", (row) => {
+    const idx = scores.findIndex(s => s.id === row.id);
+    if (idx !== -1) scores[idx] = row; else scores.push(row);
+    renderEntries();
+  });
+
+  socket.on("deleteScore", ({ id }) => {
+    scores = scores.filter(s => s.id !== id);
+    renderEntries();
+  });
+
+  socket.on("ratingsUpdate", (r) => {
+    ratings = r || {};
+    renderEntries();
+  });
+
+  setDayToday();
+  pingPin();
 </script>
 </body>
 </html>
