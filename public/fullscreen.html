@@ -11,11 +11,11 @@
   <style>
     :root{
       --pad: clamp(12px, 1.4vmin, 28px);
-      --title: clamp(22px, 2.8vw, 56px);
+      --title: clamp(24px, 3vw, 64px);
       --sub: clamp(12px, 1.15vw, 20px);
-      --driver: clamp(16px, 1.35vw, 28px);
-      --time: clamp(22px, 2.1vw, 46px);
-      --table: clamp(13px, 1.15vw, 22px);
+      --driver: clamp(18px, 1.45vw, 28px);
+      --time: clamp(22px, 2.1vw, 48px);
+      --table: clamp(13px, 1.1vw, 20px);
       --rank: clamp(14px, 1.2vw, 24px);
       --rowPadY: clamp(10px, 1.2vmin, 18px);
     }
@@ -31,117 +31,109 @@
 
     .pulse-new { animation: pulseNew 1.15s ease-out 1; }
     @keyframes pulseNew {
-      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.26); background-color: rgba(16,185,129,0.06); }
-      60%  { box-shadow: 0 0 0 26px rgba(16,185,129,0.00); }
-      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.00); background-color: transparent; }
+      0%   { box-shadow: 0 0 0 0 rgba(14,165,233,0.26); background-color: rgba(14,165,233,0.06); }
+      60%  { box-shadow: 0 0 0 26px rgba(14,165,233,0.00); }
+      100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.00); background-color: transparent; }
     }
   </style>
 </head>
 
-<body class="min-h-screen bg-zinc-950 text-zinc-100">
+<body class="min-h-screen bg-slate-950 text-slate-100">
   <div class="h-screen w-screen p-[var(--pad)] flex flex-col gap-[var(--pad)]">
-    <!-- Banner -->
-    <div class="flex items-end justify-between gap-4">
+    <header class="flex items-end justify-between gap-4">
       <div class="min-w-0">
+        <p class="t-sub uppercase tracking-[0.4em] text-slate-500">Live Time Trial</p>
         <div class="flex items-center gap-3 min-w-0">
-          <h1 class="t-title font-extrabold tracking-tight truncate">🏁 LIVE EVENT</h1>
-          <span class="t-sub inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2 text-zinc-200">
+          <h1 class="t-title font-black tracking-tight truncate">Event Leaderboard</h1>
+          <span class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2 text-slate-200">
             <span id="eventName" class="font-semibold truncate">—</span>
           </span>
-          <span class="t-sub inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2 text-zinc-200">
+          <span class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2 text-slate-200">
             View: <span id="gameLabel" class="font-semibold">Mixed</span>
           </span>
         </div>
-        <p class="t-sub text-zinc-400 mt-2">Clean TV layout — podium + top 20. Designed for in-room signage.</p>
+        <p class="t-sub text-slate-400 mt-2">Top 20 with iRating deltas. Auto-updating.</p>
       </div>
 
       <div class="flex items-center gap-3 t-sub">
-        <span class="inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-4 py-2">
+        <span class="inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2">
           <span id="liveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
           <span id="liveLabel">Live</span>
         </span>
-        <a href="/" class="ml-3 text-sm px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Back to display</a>
+        <a href="/" class="ml-3 text-sm px-3 py-2 rounded-md bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Back to display</a>
       </div>
-    </div>
+    </header>
 
-    <!-- Podium top-centre -->
-    <div class="w-full flex justify-center">
-      <div class="w-full max-w-[1600px] grid grid-cols-12 gap-[var(--pad)]">
-        <div class="col-span-12 md:col-span-4 order-2 md:order-1">
-          <div class="h-full rounded-[22px] border border-zinc-200/25 bg-gradient-to-r from-zinc-200/10 to-transparent p-[var(--pad)]">
-            <div class="flex items-center justify-between">
-              <div class="t-sub font-semibold">🥈 P2</div>
-              <div class="t-sub text-zinc-300" id="p2_meta">—</div>
-            </div>
-            <div class="mt-2">
-              <div class="t-driver font-semibold truncate" id="p2_driver">—</div>
-              <div class="t-time font-extrabold tracking-tight" id="p2_time">—</div>
-              <div class="t-sub text-zinc-300 mt-2 truncate" id="p2_detail">—</div>
-            </div>
+    <div class="flex-1 grid grid-cols-12 gap-[var(--pad)] min-h-0">
+      <section class="col-span-12 lg:col-span-4 flex flex-col gap-[var(--pad)]">
+        <div class="rounded-[22px] border border-amber-500/35 bg-gradient-to-br from-amber-500/15 to-transparent p-[var(--pad)]">
+          <div class="flex items-center justify-between">
+            <div class="t-sub font-semibold">🥇 P1</div>
+            <div class="t-sub text-slate-300" id="p1_meta">—</div>
+          </div>
+          <div class="mt-3">
+            <div class="t-driver font-semibold truncate" id="p1_driver">—</div>
+            <div class="t-time font-extrabold tracking-tight" id="p1_time">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p1_detail">—</div>
           </div>
         </div>
 
-        <div class="col-span-12 md:col-span-4 order-1 md:order-2">
-          <div class="h-full rounded-[22px] border border-amber-500/35 bg-gradient-to-r from-amber-500/18 to-transparent p-[var(--pad)]">
-            <div class="flex items-center justify-between">
-              <div class="t-sub font-semibold">🥇 P1</div>
-              <div class="t-sub text-zinc-300" id="p1_meta">—</div>
-            </div>
-            <div class="mt-2">
-              <div class="t-driver font-semibold truncate" id="p1_driver">—</div>
-              <div class="t-time font-extrabold tracking-tight" id="p1_time">—</div>
-              <div class="t-sub text-zinc-300 mt-2 truncate" id="p1_detail">—</div>
-            </div>
+        <div class="rounded-[22px] border border-slate-200/25 bg-gradient-to-br from-slate-200/10 to-transparent p-[var(--pad)]">
+          <div class="flex items-center justify-between">
+            <div class="t-sub font-semibold">🥈 P2</div>
+            <div class="t-sub text-slate-300" id="p2_meta">—</div>
+          </div>
+          <div class="mt-3">
+            <div class="t-driver font-semibold truncate" id="p2_driver">—</div>
+            <div class="t-time font-extrabold tracking-tight" id="p2_time">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p2_detail">—</div>
           </div>
         </div>
 
-        <div class="col-span-12 md:col-span-4 order-3">
-          <div class="h-full rounded-[22px] border border-orange-300/25 bg-gradient-to-r from-orange-500/12 to-transparent p-[var(--pad)]">
-            <div class="flex items-center justify-between">
-              <div class="t-sub font-semibold">🥉 P3</div>
-              <div class="t-sub text-zinc-300" id="p3_meta">—</div>
-            </div>
-            <div class="mt-2">
-              <div class="t-driver font-semibold truncate" id="p3_driver">—</div>
-              <div class="t-time font-extrabold tracking-tight" id="p3_time">—</div>
-              <div class="t-sub text-zinc-300 mt-2 truncate" id="p3_detail">—</div>
-            </div>
+        <div class="rounded-[22px] border border-orange-300/25 bg-gradient-to-br from-orange-500/12 to-transparent p-[var(--pad)]">
+          <div class="flex items-center justify-between">
+            <div class="t-sub font-semibold">🥉 P3</div>
+            <div class="t-sub text-slate-300" id="p3_meta">—</div>
+          </div>
+          <div class="mt-3">
+            <div class="t-driver font-semibold truncate" id="p3_driver">—</div>
+            <div class="t-time font-extrabold tracking-tight" id="p3_time">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p3_detail">—</div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Table fills remaining space -->
-    <div class="flex-1 min-h-0 w-full flex justify-center">
-      <div class="w-full max-w-[1900px] rounded-[22px] border border-zinc-800 bg-zinc-900/60 overflow-hidden flex flex-col">
-        <div class="px-[var(--pad)] py-[calc(var(--pad)*0.75)] bg-zinc-950/55 flex items-center justify-between">
-          <div class="t-table font-semibold">Top 20</div>
-          <div class="t-sub text-zinc-400"><span id="count">0 entries</span></div>
-        </div>
+      <section class="col-span-12 lg:col-span-8 flex flex-col min-h-0">
+        <div class="rounded-[22px] border border-slate-800 bg-slate-900/60 overflow-hidden flex flex-col min-h-0">
+          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.75)] bg-slate-950/55 flex items-center justify-between">
+            <div class="t-table font-semibold">Top 20</div>
+            <div class="t-sub text-slate-400"><span id="count">0 entries</span></div>
+          </div>
 
-        <div class="flex-1 min-h-0 overflow-hidden">
-          <table class="w-full">
-            <thead class="bg-zinc-950/45 text-zinc-300 t-sub">
-              <tr>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[7rem]">#</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Driver</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[12rem]">Rating</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[16rem]">Time</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem] hidden md:table-cell">Game</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] hidden lg:table-cell">Car</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[18rem] hidden xl:table-cell">Tag</th>
-              </tr>
-            </thead>
-            <tbody id="rows" class="divide-y divide-zinc-800 t-table"></tbody>
-          </table>
-        </div>
+          <div class="flex-1 min-h-0 overflow-hidden">
+            <table class="w-full">
+              <thead class="bg-slate-950/45 text-slate-300 t-sub">
+                <tr>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[6rem]">#</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Driver</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[12rem]">iRating</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem]">Time</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem] hidden md:table-cell">Game</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] hidden lg:table-cell">Car</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[18rem] hidden xl:table-cell">Tag</th>
+                </tr>
+              </thead>
+              <tbody id="rows" class="divide-y divide-slate-800 t-table"></tbody>
+            </table>
+          </div>
 
-        <div class="px-[var(--pad)] py-[calc(var(--pad)*0.6)] bg-zinc-950/40 t-sub text-zinc-400 flex justify-between">
-          <span>Auto-updating</span>
-          <span id="footerNote">Pinned display</span>
+          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.6)] bg-slate-950/40 t-sub text-slate-400 flex justify-between">
+            <span>Auto-updating</span>
+            <span id="footerNote">Pinned display</span>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 
@@ -173,7 +165,7 @@
   };
 
   let scores = [];
-  let settings = { events: [], fullscreen: { eventId: "", game: "" }, bestPerDriver: true };
+  let settings = { events: [], fullscreen: { eventId: "", game: "" } };
   let ratings = {};
   let pulseIds = new Map();
 
@@ -202,31 +194,17 @@
     for (const [id, exp] of pulseIds.entries()) if (exp <= now) pulseIds.delete(id);
   }
 
-  function currentEventName(eventId) {
-    const evt = settings.events?.find(e => e.id === eventId);
-    return evt?.name || "Event";
-  }
-
-  function getRatingKey(game, track, first, last) {
-    return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+  function getRatingKey(game, first, last) {
+    return `${String(game).trim()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
   }
 
   function getRatingDisplay(s) {
-    const key = getRatingKey(s.game, s.track, s.first, s.last);
+    const key = getRatingKey(s.game, s.first, s.last);
     const rating = ratings[key];
-    if (!rating) return "— ";
-    const dir = rating.lastChange > 0 ? "↑" : rating.lastChange < 0 ? "↓" : "";
-    return `${rating.rating} ${dir}${Math.abs(rating.lastChange)}`.trim();
-  }
-
-  function normalizeName(first, last) {
-    const nameMode = settings.privacy?.nameMode || "FULL";
-    if (settings.lecturerMode) {
-      if (settings.cohort === "Guest") return "Guest";
-      if (nameMode === "FIRST_INITIAL") return `${first.charAt(0)}. ${last}`;
-      if (nameMode === "FIRST_LAST_INITIAL") return `${first} ${last.charAt(0)}.`;
-    }
-    return `${first} ${last}`;
+    if (!rating) return "—";
+    const delta = rating.lastChange;
+    const sign = delta > 0 ? "+" : "";
+    return `${rating.rating} (${sign}${delta})`;
   }
 
   function setPodium(rank, s) {
@@ -238,142 +216,25 @@
       P[`${id}_meta`].textContent = "—";
       return;
     }
-    const displayName = normalizeName(s.first, s.last);
-    P[`${id}_driver`].textContent = displayName;
+    P[`${id}_driver`].textContent = `${s.first} ${s.last}`.trim();
     P[`${id}_time`].textContent = s.time || "—";
     P[`${id}_detail`].textContent = `${s.game} • ${s.track} • ${s.car || "—"}`;
     P[`${id}_meta`].textContent = `${s.cohort || "Guest"} • ${s.course || "—"}`;
   }
 
-  function passesPinnedFilters(s) {
-    const eventId = settings.fullscreen?.eventId || "";
-    const game = settings.fullscreen?.game || "";
-
-    if (eventId && s.eventId !== eventId) return false;
-    if (game && s.game !== game) return false;
-    return true;
-  }
-
-  let autoScrollActive = false;
-  let autoScrollInterval = null;
-  let lastLapTime = Date.now();
-
-  function startAutoScroll() {
-    if (autoScrollActive || !settings.autoScroll) return;
-    
-    autoScrollActive = true;
-       const table = rows.closest("table");
-       if (!table) return;
-
-       const scrollContainer = table.parentElement;
-    if (!scrollContainer) return;
-
-    let scrollDirection = 1; // 1 = down, -1 = up
-    
-    const doScroll = () => {
-      if (Date.now() - lastLapTime < 15000) {
-        // Recent lap activity, pause scrolling
-        scrollContainer.scrollTop = 0;
-        return;
-      }
-
-      const maxScroll = scrollContainer.scrollHeight - scrollContainer.clientHeight;
-      const currentScroll = scrollContainer.scrollTop;
-      const step = 2;
-
-      if (scrollDirection === 1) {
-        scrollContainer.scrollTop += step;
-        if (currentScroll >= maxScroll - 5) {
-          scrollDirection = -1;
-          autoScrollInterval && clearTimeout(autoScrollInterval);
-          autoScrollInterval = setTimeout(doScroll, settings.autoScrollPauseMs || 2000);
-          return;
-        }
-      } else {
-        scrollContainer.scrollTop -= step;
-        if (currentScroll <= 5) {
-          scrollDirection = 1;
-        }
-      }
-
-      autoScrollInterval && clearTimeout(autoScrollInterval);
-      autoScrollInterval = setTimeout(doScroll, 50);
-    };
-
-    autoScrollInterval && clearTimeout(autoScrollInterval);
-    doScroll();
-  }
-
-  function stopAutoScroll() {
-      autoScrollActive = false;
-    if (autoScrollInterval) {
-      clearTimeout(autoScrollInterval);
-      autoScrollInterval = null;
-    }
-  }
-
-  // Spotlight state
-  let spotlightActive = false;
-  let spotlightInterval = null;
-  let currentSpotlight = null;
-
-  function startSpotlight() {
-    if (spotlightActive || !settings.spotlight) return;
-    spotlightActive = true;
-
-    const doSpotlight = () => {
-      let list = scores.filter(passesPinnedFilters);
-      list.sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
-
-      if (list.length === 0) {
-        currentSpotlight = null;
-        render();
-        spotlightInterval && clearTimeout(spotlightInterval);
-        spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
-        return;
-      }
-
-      if (settings.spotlightMode === "recent") {
-        currentSpotlight = list[0];
-      } else if (settings.spotlightMode === "random") {
-        const top20 = list.slice(0, 20);
-        currentSpotlight = top20[Math.floor(Math.random() * top20.length)];
-      } else if (settings.spotlightMode === "improved") {
-        // For now, use random; in future could track improvement delta
-        currentSpotlight = list[Math.floor(Math.random() * Math.min(5, list.length))];
-      }
-
-      render();
-
-      spotlightInterval && clearTimeout(spotlightInterval);
-      spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
-    };
-
-    spotlightInterval && clearTimeout(spotlightInterval);
-    spotlightInterval = setTimeout(doSpotlight, settings.spotlightRateMs || 10000);
-  }
-
-  function stopSpotlight() {
-    spotlightActive = false;
-    currentSpotlight = null;
-    if (spotlightInterval) {
-      clearTimeout(spotlightInterval);
-      spotlightInterval = null;
-    }
-    render();
-  }
-
   function render() {
     cleanupPulse();
 
-    const eventId = settings.fullscreen?.eventId || "";
-    const pinnedEventName = currentEventName(eventId);
-    const pinnedGame = settings.fullscreen?.game || "";
+    const liveEvent = settings.fullscreen?.eventId || settings.liveEventId;
+    const gameFilter = settings.fullscreen?.game || "";
 
-    eventNameEl.textContent = pinnedEventName;
-    gameLabelEl.textContent = pinnedGame ? pinnedGame : "Mixed";
+    const eventName = settings.events?.find(e => e.id === liveEvent)?.name || "—";
+    eventNameEl.textContent = eventName;
+    gameLabelEl.textContent = gameFilter || "Mixed";
 
-    let list = scores.filter(passesPinnedFilters);
+    let list = scores.filter(s => s.eventId === liveEvent);
+    if (gameFilter) list = list.filter(s => s.game === gameFilter);
+
     list.sort((a,b) => timeToMs(a.time) - timeToMs(b.time));
 
     setPodium(1, list[0]);
@@ -383,23 +244,17 @@
     const view = list.slice(0, 20);
 
     rows.innerHTML = view.map((s, i) => {
-      const rank = i + 1;
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
-      const tag = `${escapeHtml(s.cohort || "Guest")} • ${escapeHtml(s.course || "—")}`;
-      const isSpotlight = currentSpotlight && s.id === currentSpotlight.id;
-      const spotlightClass = isSpotlight ? " ring-4 ring-amber-500/70 bg-amber-500/10" : (spotlightActive && currentSpotlight ? " opacity-40" : "");
-      const displayName = normalizeName(s.first, s.last);
-
       return `
-        <tr class="${pulse}${spotlightClass} hover:bg-zinc-950/25 transition">
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 font-semibold t-rank">${rank}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-semibold">${escapeHtml(displayName)}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-amber-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-white font-extrabold tracking-tight t-time">${escapeHtml(s.time)}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-200 hidden md:table-cell">${escapeHtml(s.game)}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-100">${escapeHtml(s.track)}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 hidden lg:table-cell">${escapeHtml(s.car || "—")}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-zinc-300 hidden xl:table-cell">${tag}</td>
+        <tr class="${pulse} hover:bg-slate-950/30">
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] t-rank text-slate-300 font-semibold">${i + 1}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] font-semibold text-white">${escapeHtml(`${s.first} ${s.last}`)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] text-sky-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] t-time font-extrabold text-white">${escapeHtml(s.time)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden md:table-cell">${escapeHtml(s.game)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)]">${escapeHtml(s.track)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden lg:table-cell">${escapeHtml(s.car || "—")}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden xl:table-cell text-slate-300">${escapeHtml(`${s.cohort || "Guest"} • ${s.course || "—"}`)}</td>
         </tr>
       `;
     }).join("");
@@ -412,37 +267,34 @@
     render();
   });
 
+  socket.on("settingsUpdate", (s) => {
+    settings = s || settings;
+    const followLive = settings.fullscreen?.followLiveEvent;
+    liveLabel.textContent = followLive ? "Live" : "Pinned";
+    liveDot.className = followLive ? "w-2.5 h-2.5 rounded-full bg-emerald-500" : "w-2.5 h-2.5 rounded-full bg-amber-500";
+    render();
+  });
+
   socket.on("ratingsUpdate", (r) => {
     ratings = r || {};
     render();
   });
 
-  socket.on("settingsUpdate", (s) => {
-    settings = s || settings;
-
-    // Manage auto-scroll
-    if (settings.autoScroll) startAutoScroll();
-    else stopAutoScroll();
-
-    // Manage spotlight
-    if (settings.spotlight) startSpotlight();
-    else stopSpotlight();
-
-    render();
-  });
-
   socket.on("scoreUpdate", (row) => {
     scores.push(row);
-    lastLapTime = Date.now();
-    pulseIds.set(row.id, Date.now() + 1500);
+    pulseIds.set(row.id, Date.now() + 1400);
     render();
   });
 
   socket.on("scoreReplace", (row) => {
-    const idx = scores.findIndex(x => x.id === row.id);
+    const idx = scores.findIndex(s => s.id === row.id);
     if (idx !== -1) scores[idx] = row; else scores.push(row);
-    lastLapTime = Date.now();
-    pulseIds.set(row.id, Date.now() + 1500);
+    pulseIds.set(row.id, Date.now() + 1400);
+    render();
+  });
+
+  socket.on("deleteScore", ({ id }) => {
+    scores = scores.filter(s => s.id !== id);
     render();
   });
 
@@ -451,17 +303,9 @@
     render();
   });
 
-  socket.on("clearAll", () => { scores = []; render(); });
-
-  socket.on("disconnect", () => {
-    liveLabel.textContent = "Disconnected";
-    liveDot.classList.remove("bg-emerald-500");
-    liveDot.classList.add("bg-red-500");
-  });
-  socket.on("connect", () => {
-    liveLabel.textContent = "Live";
-    liveDot.classList.remove("bg-red-500");
-    liveDot.classList.add("bg-emerald-500");
+  socket.on("clearAll", () => {
+    scores = [];
+    render();
   });
 </script>
 </body>

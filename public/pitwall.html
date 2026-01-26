@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pit Wall Telemetry</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="min-h-screen bg-black text-white">
+  <div class="max-w-[1700px] mx-auto px-6 py-8">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-emerald-400">Racing Leaderboard</p>
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight">Pit Wall Telemetry</h1>
+        <p class="text-emerald-200/70">Live performance graphs and driver vitals (telemetry required).</p>
+      </div>
+      <nav class="flex items-center gap-2 text-sm">
+        <a href="/" class="px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20">Display</a>
+        <a href="/map" class="px-4 py-2 rounded-full border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20">Track Map</a>
+      </nav>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <section class="col-span-12 lg:col-span-8 space-y-6">
+        <div class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h2 class="text-lg font-semibold">Speed / Throttle / Brake</h2>
+              <p id="trackLabel" class="text-xs text-emerald-200/70">Track: Spa-Francorchamps</p>
+            </div>
+            <span id="telemetryStatus" class="text-xs text-emerald-200/70">Waiting for telemetry…</span>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <div class="flex items-center justify-between text-xs text-emerald-200/70">
+                <span>Speed</span>
+                <span id="speedLabel">— km/h</span>
+              </div>
+              <div class="h-3 rounded-full bg-white/10">
+                <div id="speedBar" class="h-3 rounded-full bg-emerald-500" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs text-emerald-200/70">
+                <span>Throttle</span>
+                <span id="throttleLabel">— %</span>
+              </div>
+              <div class="h-3 rounded-full bg-white/10">
+                <div id="throttleBar" class="h-3 rounded-full bg-emerald-400" style="width: 0%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between text-xs text-emerald-200/70">
+                <span>Brake</span>
+                <span id="brakeLabel">— %</span>
+              </div>
+              <div class="h-3 rounded-full bg-white/10">
+                <div id="brakeBar" class="h-3 rounded-full bg-white" style="width: 0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
+          <h2 class="text-lg font-semibold mb-3">Lap Delta</h2>
+          <div class="flex items-center justify-between text-xs text-emerald-200/70">
+            <span>Delta to best</span>
+            <span id="deltaLabel">—</span>
+          </div>
+          <div class="mt-3 h-20 rounded-2xl border border-emerald-500/20 bg-black flex items-center justify-center text-sm text-emerald-200/70">
+            Graph stream placeholder (bind to telemetry series)
+          </div>
+        </div>
+      </section>
+
+      <aside class="col-span-12 lg:col-span-4 space-y-6">
+        <div class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
+          <h2 class="text-lg font-semibold">Driver</h2>
+          <div class="mt-4 space-y-3 text-sm text-emerald-200/70">
+            <div class="flex items-center justify-between">
+              <span>Name</span>
+              <span id="driverLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Car</span>
+              <span id="carLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Lap</span>
+              <span id="lapLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Last lap</span>
+              <span id="lastLapLabel" class="text-white">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
+          <h2 class="text-lg font-semibold">Systems</h2>
+          <div class="mt-4 space-y-3 text-sm text-emerald-200/70">
+            <div class="flex items-center justify-between">
+              <span>Fuel</span>
+              <span id="fuelLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Tires</span>
+              <span id="tireLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>ERS</span>
+              <span id="ersLabel" class="text-white">—</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+  const socket = io();
+
+  const telemetryStatus = document.getElementById("telemetryStatus");
+  const trackLabel = document.getElementById("trackLabel");
+  const speedBar = document.getElementById("speedBar");
+  const throttleBar = document.getElementById("throttleBar");
+  const brakeBar = document.getElementById("brakeBar");
+  const speedLabel = document.getElementById("speedLabel");
+  const throttleLabel = document.getElementById("throttleLabel");
+  const brakeLabel = document.getElementById("brakeLabel");
+  const deltaLabel = document.getElementById("deltaLabel");
+  const driverLabel = document.getElementById("driverLabel");
+  const carLabel = document.getElementById("carLabel");
+  const lapLabel = document.getElementById("lapLabel");
+  const lastLapLabel = document.getElementById("lastLapLabel");
+  const fuelLabel = document.getElementById("fuelLabel");
+  const tireLabel = document.getElementById("tireLabel");
+  const ersLabel = document.getElementById("ersLabel");
+
+  function setBar(el, value, max) {
+    const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+    el.style.width = `${(pct * 100).toFixed(0)}%`;
+  }
+
+  socket.on("telemetryUpdate", (payload) => {
+    telemetryStatus.textContent = "Live telemetry connected";
+    if (!payload) return;
+
+    speedLabel.textContent = `${payload.speed ?? "—"} km/h`;
+    throttleLabel.textContent = `${payload.throttle ?? "—"} %`;
+    brakeLabel.textContent = `${payload.brake ?? "—"} %`;
+
+    setBar(speedBar, payload.speed || 0, 350);
+    setBar(throttleBar, payload.throttle || 0, 100);
+    setBar(brakeBar, payload.brake || 0, 100);
+
+    deltaLabel.textContent = payload.delta || "—";
+    if (payload.track) trackLabel.textContent = `Track: ${payload.track}`;
+    driverLabel.textContent = payload.driver || "—";
+    carLabel.textContent = payload.car || "—";
+    lapLabel.textContent = payload.lap ?? "—";
+    lastLapLabel.textContent = payload.lastLap || "—";
+    fuelLabel.textContent = payload.fuel || "—";
+    tireLabel.textContent = payload.tires || "—";
+    ersLabel.textContent = payload.ers || "—";
+  });
+</script>
+</body>
+</html>
