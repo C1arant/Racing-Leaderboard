@@ -9,7 +9,7 @@
 
   <style>
     :root{
-      --t-title: clamp(22px, 2.2vw, 44px);
+      --t-title: clamp(26px, 2.4vw, 48px);
       --t-sub: clamp(12px, 1.0vw, 16px);
       --t-base: clamp(13px, 1.05vw, 18px);
       --t-time: clamp(16px, 1.6vw, 26px);
@@ -21,136 +21,110 @@
 
     .pulse-new { animation: pulseNew 1.1s ease-out 1; }
     @keyframes pulseNew {
-      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.30); background-color: rgba(16,185,129,0.06); }
-      60%  { box-shadow: 0 0 0 22px rgba(16,185,129,0.00); }
-      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.00); background-color: transparent; }
+      0%   { box-shadow: 0 0 0 0 rgba(14,165,233,0.30); background-color: rgba(14,165,233,0.06); }
+      60%  { box-shadow: 0 0 0 22px rgba(14,165,233,0.00); }
+      100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.00); background-color: transparent; }
     }
   </style>
 </head>
 
-<body class="min-h-screen bg-zinc-950 text-zinc-100">
-  <div class="max-w-[1700px] mx-auto px-6 py-6">
-    <header class="flex items-center justify-between gap-4 mb-6">
+<body class="min-h-screen bg-slate-950 text-slate-100">
+  <div class="max-w-[1800px] mx-auto px-6 py-8">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
       <div class="min-w-0">
-        <div class="flex items-center gap-3 min-w-0">
-          <h1 class="t-title font-extrabold tracking-tight truncate">🏁 Leaderboards</h1>
-          <span id="liveEventBadge" class="t-sub inline-flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-full px-3 py-2 text-zinc-200">
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-500">Racing Leaderboard</p>
+        <div class="flex items-center gap-3 min-w-0 mt-1">
+          <h1 class="t-title font-black tracking-tight truncate">Time Trial Rankings</h1>
+          <span id="liveEventBadge" class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-3 py-2 text-slate-200">
             LIVE: <span id="liveEventName" class="font-semibold">—</span>
           </span>
         </div>
-        <p class="t-sub text-zinc-400 mt-1">Search names, tracks, cars — clear, fast, and privacy-aware.</p>
+        <p class="t-sub text-slate-400 mt-2">Filter by event, track, or game. Ratings follow iRacing-style strength-of-field scoring.</p>
       </div>
       <nav class="flex items-center gap-2 t-sub">
-        <a href="/fullscreen" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900 hidden md:inline-block">Fullscreen</a>
-        <a href="/admin" class="px-3 py-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-zinc-200 hover:bg-zinc-900">Admin</a>
-        <a href="/rig" class="px-3 py-2 rounded-md bg-amber-500 text-black font-semibold hover:opacity-95">Rig UI</a>
+        <a href="/fullscreen" class="px-4 py-2 rounded-full bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Fullscreen</a>
+        <a href="/admin" class="px-4 py-2 rounded-full bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Admin</a>
       </nav>
     </header>
 
-    <!-- Mode toggle -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <button id="tabLeaderboard" class="t-base px-4 py-2 rounded-xl bg-white text-black font-semibold">Leaderboard</button>
-      <button id="tabAttempts" class="t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition">All Laps (History)</button>
+    <div class="grid grid-cols-12 gap-6">
+      <aside class="col-span-12 lg:col-span-3 space-y-6">
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5">
+          <h2 class="text-base font-semibold">View</h2>
+          <div class="flex gap-2 mt-3">
+            <button id="tabLeaderboard" class="t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold">Leaderboard</button>
+            <button id="tabAttempts" class="t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition">History</button>
+          </div>
+        </section>
 
-      <div class="ml-auto flex flex-wrap items-center gap-2">
-        <input id="q" placeholder="Search name / track / car / course…"
-               class="t-base w-[520px] max-w-full bg-zinc-900/60 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-        <button id="clearQ" class="t-base px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition">Clear</button>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="flex flex-wrap items-center gap-2 mb-4">
-      <select id="eventSel" class="t-base bg-zinc-900/60 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600">
-        <option value="">All Events</option>
-      </select>
-
-      <button class="game t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition" data-game="">
-        Mixed
-      </button>
-      <button class="game t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition" data-game="Assetto Corsa">
-        Assetto Corsa
-      </button>
-      <button class="game t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition" data-game="F1 25">
-        F1 25
-      </button>
-
-      <input id="trackFilter" placeholder="Track filter (optional)"
-             class="t-base w-72 max-w-full bg-zinc-900/60 border border-zinc-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-zinc-600" />
-      <button id="clearTrack" class="t-base px-3 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition">Clear track</button>
-
-      <span class="ml-auto t-sub text-zinc-400">
-        Mode: <span id="bestModeLabel" class="font-semibold text-zinc-200">Best per driver</span>
-      </span>
-    </div>
-
-    <!-- Leaderboard view -->
-    <div id="leaderboardView" class="grid grid-cols-12 gap-4">
-      <div class="col-span-12 xl:col-span-4 space-y-4">
-        <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 shadow">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="t-base font-semibold">Podium</h2>
-            <span class="t-sub text-zinc-400">Filtered view</span>
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+          <div>
+            <label class="t-sub text-slate-400">Search</label>
+            <input id="q" placeholder="Driver / track / car / course"
+              class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600" />
+            <button id="clearQ" class="t-base mt-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition w-full">Clear search</button>
           </div>
 
-          <div class="grid grid-cols-1 gap-3">
-            <div class="rounded-2xl border border-amber-500/35 bg-gradient-to-r from-amber-500/18 to-zinc-950/0 p-4">
-              <div class="flex items-center justify-between">
-                <div class="t-base font-semibold">🥇 P1</div>
-                <div class="t-sub text-zinc-300" id="p1_meta">—</div>
-              </div>
-              <div class="mt-2">
-                <div class="t-base font-semibold" id="p1_driver">—</div>
-                <div class="t-time font-extrabold tracking-tight" id="p1_time">—</div>
-                <div class="t-sub text-zinc-300 mt-1" id="p1_detail">—</div>
-              </div>
-            </div>
+          <div>
+            <label class="t-sub text-slate-400">Event</label>
+            <select id="eventSel" class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600">
+              <option value="">All Events</option>
+            </select>
+          </div>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div class="rounded-2xl border border-zinc-200/25 bg-gradient-to-r from-zinc-200/10 to-zinc-950/0 p-4">
-                <div class="flex items-center justify-between">
-                  <div class="t-base font-semibold">🥈 P2</div>
-                  <div class="t-sub text-zinc-300" id="p2_meta">—</div>
-                </div>
-                <div class="mt-2">
-                  <div class="t-base font-semibold" id="p2_driver">—</div>
-                  <div class="t-time font-extrabold tracking-tight" id="p2_time">—</div>
-                  <div class="t-sub text-zinc-300 mt-1" id="p2_detail">—</div>
-                </div>
-              </div>
-
-              <div class="rounded-2xl border border-orange-300/25 bg-gradient-to-r from-orange-500/12 to-zinc-950/0 p-4">
-                <div class="flex items-center justify-between">
-                  <div class="t-base font-semibold">🥉 P3</div>
-                  <div class="t-sub text-zinc-300" id="p3_meta">—</div>
-                </div>
-                <div class="mt-2">
-                  <div class="t-base font-semibold" id="p3_driver">—</div>
-                  <div class="t-time font-extrabold tracking-tight" id="p3_time">—</div>
-                  <div class="t-sub text-zinc-300 mt-1" id="p3_detail">—</div>
-                </div>
-              </div>
+          <div>
+            <label class="t-sub text-slate-400">Game</label>
+            <div class="mt-2 grid grid-cols-3 gap-2">
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="">
+                Mixed
+              </button>
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="Assetto Corsa">
+                AC
+              </button>
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="F1 25">
+                F1 25
+              </button>
             </div>
           </div>
-        </div>
 
-        <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4 shadow">
-          <h2 class="t-base font-semibold mb-2">Tip</h2>
-          <p class="t-sub text-zinc-400">
-            Use <span class="text-zinc-200 font-semibold">All Laps</span> to see every attempt for a driver, across all events.
-          </p>
-        </div>
-      </div>
+          <div>
+            <label class="t-sub text-slate-400">Track filter</label>
+            <input id="trackFilter" placeholder="Track name"
+              class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600" />
+            <button id="clearTrack" class="t-base mt-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition w-full">Clear track</button>
+          </div>
+        </section>
 
-      <div class="col-span-12 xl:col-span-8">
-        <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow">
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
+          <h2 class="text-base font-semibold">Snapshot</h2>
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-xs text-slate-400">Total entries</p>
+            <p id="statTotal" class="text-2xl font-bold">0</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-xs text-slate-400">Top driver</p>
+            <p id="statDriver" class="text-lg font-semibold">—</p>
+            <p id="statTime" class="text-xs text-slate-400">—</p>
+          </div>
+        </section>
+      </aside>
+
+      <main class="col-span-12 lg:col-span-9 space-y-6">
+        <section id="leaderboardView" class="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 bg-slate-950/60">
+            <div>
+              <h2 class="text-lg font-semibold">Leaderboard</h2>
+              <p class="t-sub text-slate-400">Fastest time first</p>
+            </div>
+            <span id="lbCount" class="t-sub text-slate-400">0 entries</span>
+          </div>
           <div class="overflow-x-auto">
             <table class="w-full t-base">
-              <thead class="bg-zinc-950/60 text-zinc-300">
+              <thead class="bg-slate-950/60 text-slate-300">
                 <tr>
                   <th class="text-left px-5 py-4 w-16">#</th>
                   <th class="text-left px-5 py-4">Driver</th>
-                  <th class="text-left px-5 py-4 w-40">Rating</th>
+                  <th class="text-left px-5 py-4 w-44">iRating</th>
                   <th class="text-left px-5 py-4 w-36">Time</th>
                   <th class="text-left px-5 py-4 w-36">Game</th>
                   <th class="text-left px-5 py-4">Track</th>
@@ -158,41 +132,37 @@
                   <th class="text-left px-5 py-4 w-64">Event</th>
                 </tr>
               </thead>
-              <tbody id="lbRows" class="divide-y divide-zinc-800"></tbody>
+              <tbody id="lbRows" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
-          <div class="px-5 py-3 bg-zinc-950/40 t-base text-zinc-400 flex justify-between">
-            <span id="lbCount">0 entries</span>
-            <span>Fastest first</span>
-          </div>
-        </div>
-      </div>
-    </div>
+        </section>
 
-    <!-- Attempts view -->
-    <div id="attemptsView" class="hidden">
-      <div class="bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden shadow">
-        <div class="overflow-x-auto">
-          <table class="w-full t-base">
-            <thead class="bg-zinc-950/60 text-zinc-300">
-              <tr>
-                <th class="text-left px-5 py-4 w-40">When</th>
-                <th class="text-left px-5 py-4">Driver</th>
-                <th class="text-left px-5 py-4 w-36">Time</th>
-                <th class="text-left px-5 py-4 w-36">Game</th>
-                <th class="text-left px-5 py-4">Track</th>
-                <th class="text-left px-5 py-4">Car</th>
-                <th class="text-left px-5 py-4 w-64">Event</th>
-              </tr>
-            </thead>
-            <tbody id="attRows" class="divide-y divide-zinc-800"></tbody>
-          </table>
-        </div>
-        <div class="px-5 py-3 bg-zinc-950/40 t-base text-zinc-400 flex justify-between">
-          <span id="attCount">0 laps</span>
-          <span>Newest first</span>
-        </div>
-      </div>
+        <section id="attemptsView" class="hidden rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 bg-slate-950/60">
+            <div>
+              <h2 class="text-lg font-semibold">Lap History</h2>
+              <p class="t-sub text-slate-400">Newest first</p>
+            </div>
+            <span id="attCount" class="t-sub text-slate-400">0 laps</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full t-base">
+              <thead class="bg-slate-950/60 text-slate-300">
+                <tr>
+                  <th class="text-left px-5 py-4 w-44">When</th>
+                  <th class="text-left px-5 py-4">Driver</th>
+                  <th class="text-left px-5 py-4 w-36">Time</th>
+                  <th class="text-left px-5 py-4 w-36">Game</th>
+                  <th class="text-left px-5 py-4">Track</th>
+                  <th class="text-left px-5 py-4">Car</th>
+                  <th class="text-left px-5 py-4 w-64">Event</th>
+                </tr>
+              </thead>
+              <tbody id="attRows" class="divide-y divide-slate-800"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 
@@ -215,37 +185,25 @@
 
   // UI
   const liveEventName = document.getElementById("liveEventName");
-  const bestModeLabel = document.getElementById("bestModeLabel");
 
   // Leaderboard table
   const lbRows = document.getElementById("lbRows");
   const lbCount = document.getElementById("lbCount");
 
-  // Podium
-  const P = {
-    p1_driver: document.getElementById("p1_driver"),
-    p1_time: document.getElementById("p1_time"),
-    p1_detail: document.getElementById("p1_detail"),
-    p1_meta: document.getElementById("p1_meta"),
-    p2_driver: document.getElementById("p2_driver"),
-    p2_time: document.getElementById("p2_time"),
-    p2_detail: document.getElementById("p2_detail"),
-    p2_meta: document.getElementById("p2_meta"),
-    p3_driver: document.getElementById("p3_driver"),
-    p3_time: document.getElementById("p3_time"),
-    p3_detail: document.getElementById("p3_detail"),
-    p3_meta: document.getElementById("p3_meta"),
-  };
-
   // Attempts table
   const attRows = document.getElementById("attRows");
   const attCount = document.getElementById("attCount");
+
+  // Stats
+  const statTotal = document.getElementById("statTotal");
+  const statDriver = document.getElementById("statDriver");
+  const statTime = document.getElementById("statTime");
 
   // Data
   let scores = [];
   let attempts = [];
   let ratings = {};
-  let settings = { events: [], bestPerDriver: true, fullscreen: { eventId: "", game: "" } };
+  let settings = { events: [], fullscreen: { eventId: "", game: "" } };
 
   let activeGame = ""; // "" = Mixed
   let activeView = "leaderboard"; // or "attempts"
@@ -290,12 +248,12 @@
     attemptsView.classList.toggle("hidden", lbOn);
 
     tabLeaderboard.className = lbOn
-      ? "t-base px-4 py-2 rounded-xl bg-white text-black font-semibold"
-      : "t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition";
+      ? "t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold"
+      : "t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition";
 
     tabAttempts.className = !lbOn
-      ? "t-base px-4 py-2 rounded-xl bg-white text-black font-semibold"
-      : "t-base px-4 py-2 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 transition";
+      ? "t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold"
+      : "t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition";
 
     render();
   }
@@ -320,26 +278,17 @@
     return evt?.name || "Event";
   }
 
-  function getRatingKey(game, track, first, last) {
-    return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+  function getRatingKey(game, first, last) {
+    return `${String(game).trim()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
   }
 
   function getRatingDisplay(s) {
-    const key = getRatingKey(s.game, s.track, s.first, s.last);
+    const key = getRatingKey(s.game, s.first, s.last);
     const rating = ratings[key];
-    if (!rating) return "— ";
-    const dir = rating.lastChange > 0 ? "↑" : rating.lastChange < 0 ? "↓" : "";
-    return `${rating.rating} ${dir}${Math.abs(rating.lastChange)}`.trim();
-  }
-
-  function normalizeName(first, last, cohort) {
-    const nameMode = settings.privacy?.nameMode || "FULL";
-    if (settings.lecturerMode) {
-      if (cohort === "Guest") return "Guest";
-      if (nameMode === "FIRST_INITIAL") return `${first.charAt(0)}. ${last}`;
-      if (nameMode === "FIRST_LAST_INITIAL") return `${first} ${last.charAt(0)}.`;
-    }
-    return `${first} ${last}`;
+    if (!rating) return "—";
+    const delta = rating.lastChange;
+    const sign = delta > 0 ? "+" : "";
+    return `${rating.rating} (${sign}${delta})`;
   }
 
   function passesFiltersCommon(item) {
@@ -358,77 +307,63 @@
     return true;
   }
 
-  function setPodium(rank, s) {
-    const id = rank === 1 ? "p1" : rank === 2 ? "p2" : "p3";
-    if (!s) {
-      P[`${id}_driver`].textContent = "—";
-      P[`${id}_time`].textContent = "—";
-      P[`${id}_detail`].textContent = "—";
-      P[`${id}_meta`].textContent = "—";
+  function updateStats(list) {
+    statTotal.textContent = list.length;
+    if (!list.length) {
+      statDriver.textContent = "—";
+      statTime.textContent = "—";
       return;
     }
-    P[`${id}_driver`].textContent = `${s.first} ${s.last}`.trim();
-    P[`${id}_time`].textContent = s.time || "—";
-    P[`${id}_detail`].textContent = `${s.game} • ${s.track} • ${s.car || "—"}`;
-    P[`${id}_meta`].textContent = `${s.cohort || "Guest"} • ${s.course || "—"}`;
+    statDriver.textContent = `${list[0].first} ${list[0].last}`;
+    statTime.textContent = `Best: ${list[0].time} • ${list[0].track}`;
   }
 
   function renderLeaderboard() {
     cleanupPulse();
 
     let list = scores.filter(passesFiltersCommon);
-
-    // Display best mode is a setting (but scores already store best-of).
-    // Still show label so people know what they're looking at.
-    bestModeLabel.textContent = settings.bestPerDriver ? "Best per driver" : "Best per driver (server-enforced)";
-
     list.sort((a,b) => timeToMs(a.time) - timeToMs(b.time));
 
-    setPodium(1, list[0]);
-    setPodium(2, list[1]);
-    setPodium(3, list[2]);
-
-    const view = list.slice(0, 30);
+    const view = list.slice(0, 40);
 
     lbRows.innerHTML = view.map((s, i) => {
       const rank = i + 1;
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
-      const displayName = normalizeName(s.first, s.last, s.cohort);
       return `
-        <tr class="${pulse} hover:bg-zinc-950/30">
-          <td class="px-5 py-4 text-zinc-300 font-semibold">${rank}</td>
-          <td class="px-5 py-4 text-white font-medium">${escapeHtml(displayName)}</td>
-          <td class="px-5 py-4 text-amber-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
+        <tr class="${pulse} hover:bg-slate-950/30">
+          <td class="px-5 py-4 text-slate-300 font-semibold">${rank}</td>
+          <td class="px-5 py-4 text-white font-medium">${escapeHtml(`${s.first} ${s.last}`)}</td>
+          <td class="px-5 py-4 text-sky-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(s.time)}</td>
-          <td class="px-5 py-4 text-zinc-200">${escapeHtml(s.game)}</td>
-          <td class="px-5 py-4 text-zinc-100">${escapeHtml(s.track)}</td>
-          <td class="px-5 py-4 text-zinc-300">${escapeHtml(s.car || "—")}</td>
-          <td class="px-5 py-4 text-zinc-300">${escapeHtml(s.eventName || currentEventName(s.eventId))}</td>
+          <td class="px-5 py-4 text-slate-200">${escapeHtml(s.game)}</td>
+          <td class="px-5 py-4 text-slate-100">${escapeHtml(s.track)}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(s.car || "—")}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(s.eventName || currentEventName(s.eventId))}</td>
         </tr>
       `;
     }).join("");
 
     lbCount.textContent = `${list.length} entries (showing ${view.length})`;
+    updateStats(list);
   }
 
   function renderAttempts() {
     let list = attempts.filter(passesFiltersCommon);
     list.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    const view = list.slice(0, 250);
+    const view = list.slice(0, 300);
 
     attRows.innerHTML = view.map((a) => {
       const when = new Date(a.createdAt).toLocaleString("en-GB", { year:"2-digit", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
-      const displayName = normalizeName(a.first, a.last, a.cohort);
       return `
-        <tr class="hover:bg-zinc-950/30">
-          <td class="px-5 py-4 text-zinc-300">${escapeHtml(when)}</td>
-          <td class="px-5 py-4 text-white font-medium">${escapeHtml(displayName)}</td>
+        <tr class="hover:bg-slate-950/30">
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(when)}</td>
+          <td class="px-5 py-4 text-white font-medium">${escapeHtml(`${a.first} ${a.last}`)}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(a.time)}</td>
-          <td class="px-5 py-4 text-zinc-200">${escapeHtml(a.game)}</td>
-          <td class="px-5 py-4 text-zinc-100">${escapeHtml(a.track)}</td>
-          <td class="px-5 py-4 text-zinc-300">${escapeHtml(a.car || "—")}</td>
-          <td class="px-5 py-4 text-zinc-300">${escapeHtml(a.eventName || currentEventName(a.eventId))}</td>
+          <td class="px-5 py-4 text-slate-200">${escapeHtml(a.game)}</td>
+          <td class="px-5 py-4 text-slate-100">${escapeHtml(a.track)}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(a.car || "—")}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(a.eventName || currentEventName(a.eventId))}</td>
         </tr>
       `;
     }).join("");
@@ -442,7 +377,6 @@
   }
 
   async function fetchAttemptsInitial() {
-    // all events by default
     const res = await fetch("/api/attempts?limit=1500");
     attempts = await res.json();
     render();
@@ -465,7 +399,6 @@
     const live = settings.events?.find(e => e.isLive);
     liveEventName.textContent = live?.name || "—";
 
-    // Populate event dropdown
     const current = eventSel.value || "";
     eventSel.innerHTML = `<option value="">All Events</option>` + (settings.events || []).map(e =>
       `<option value="${escapeHtml(e.id)}">${escapeHtml(e.name)}${e.isLive ? " (LIVE)" : ""}</option>`
@@ -490,7 +423,6 @@
 
   socket.on("attemptAdded", (att) => {
     attempts.push(att);
-    // keep attempts from growing forever in-browser
     if (attempts.length > 3000) attempts.splice(0, attempts.length - 3000);
     if (activeView === "attempts") renderAttempts();
   });
@@ -507,7 +439,6 @@
     render();
   });
 
-  // Boot
   setActiveGame("");
   setView("leaderboard");
   fetchAttemptsInitial();
