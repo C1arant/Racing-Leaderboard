@@ -85,6 +85,7 @@
                 F1 25
               </button>
             </div>
+            <span id="lbCount" class="t-sub text-emerald-200/70">0 entries</span>
           </div>
 
           <div>
@@ -126,7 +127,6 @@
                   <th class="text-left px-5 py-4">Driver</th>
                   <th class="text-left px-5 py-4 w-44">iRating</th>
                   <th class="text-left px-5 py-4 w-36">Time</th>
-                  <th class="text-left px-5 py-4 w-36">Game</th>
                   <th class="text-left px-5 py-4">Track</th>
                   <th class="text-left px-5 py-4">Car</th>
                   <th class="text-left px-5 py-4 w-64">Event</th>
@@ -181,7 +181,6 @@
   const eventSel = document.getElementById("eventSel");
   const trackFilter = document.getElementById("trackFilter");
   const clearTrack = document.getElementById("clearTrack");
-  const gameButtons = Array.from(document.querySelectorAll(".game"));
 
   // UI
   const liveEventName = document.getElementById("liveEventName");
@@ -205,7 +204,6 @@
   let ratings = {};
   let settings = { events: [], fullscreen: { eventId: "", game: "" } };
 
-  let activeGame = ""; // "" = Mixed
   let activeView = "leaderboard"; // or "attempts"
 
   const pulseIds = new Map(); // row id -> expiry
@@ -228,17 +226,6 @@
       return parseInt(s,10) * 1000 + parseInt(ms,10);
     }
     return Infinity;
-  }
-
-  function setActiveGame(game) {
-    activeGame = game;
-    gameButtons.forEach(b => {
-      const on = b.dataset.game === activeGame;
-      b.classList.toggle("bg-white", on);
-      b.classList.toggle("text-black", on);
-      b.classList.toggle("font-semibold", on);
-    });
-    render();
   }
 
   function setView(view) {
@@ -266,7 +253,7 @@
   q.addEventListener("input", () => render());
   eventSel.addEventListener("change", () => render());
   trackFilter.addEventListener("input", () => render());
-  gameButtons.forEach(b => b.addEventListener("click", () => setActiveGame(b.dataset.game)));
+  // Game filter removed (single title usage).
 
   function cleanupPulse() {
     const now = Date.now();
@@ -296,7 +283,6 @@
     const ev = eventSel.value; // "" = all events
     const tf = trackFilter.value.trim().toLowerCase();
 
-    if (activeGame && item.game !== activeGame) return false;
     if (ev && item.eventId !== ev) return false;
     if (tf && !String(item.track || "").toLowerCase().includes(tf)) return false;
 

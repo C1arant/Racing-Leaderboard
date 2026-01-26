@@ -11,6 +11,7 @@ Place your app folders here, then copy them into your Assetto Corsa install:
 <Assetto Corsa>\\apps\\python\\<your_app>\\ui\\...
 ```
 
+
 If the app is a shared-memory or UDP exporter, follow its README for enabling it in Content Manager or the in-game
 apps menu. For live pit wall feeds across a network, UDP is usually the best option.
 

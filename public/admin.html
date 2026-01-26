@@ -43,9 +43,13 @@
         </section>
 
         <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
-          <h2 class="text-lg font-semibold mb-3">Add Lap</h2>
+
 
           <form id="scoreForm" class="space-y-3">
+            <div id="editBanner" class="hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+              Editing <span id="editName" class="font-semibold"></span>
+              <button id="cancelEdit" type="button" class="ml-2 underline underline-offset-2 hover:text-white">Cancel</button>
+            </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="text-xs text-emerald-200/70">First</label>
@@ -63,17 +67,7 @@
                 class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
             </div>
 
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="text-xs text-emerald-200/70">Game</label>
-                <select id="game" class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60">
-                  <option>Assetto Corsa</option>
-                  <option>F1 25</option>
-                </select>
-              </div>
-              <div>
-                <label class="text-xs text-emerald-200/70">Day</label>
-                <input id="day" class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
+
               </div>
             </div>
 
@@ -107,7 +101,7 @@
               </div>
             </div>
 
-            <button class="w-full px-3 py-2 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400">
+
               Submit Lap
             </button>
 
@@ -171,8 +165,6 @@
   const entryCount = document.getElementById("entryCount");
   const entryList = document.getElementById("entryList");
 
-  const scoreForm = document.getElementById("scoreForm");
-  const submitHint = document.getElementById("submitHint");
 
   function escapeHtml(s) {
     return String(s ?? "")
@@ -205,47 +197,6 @@
     const delta = rating.lastChange;
     const prefix = delta > 0 ? `+${delta}` : `${delta}`;
     return `${rating.rating} (${prefix})`;
-  }
-
-  function renderEntries() {
-    const list = scores.slice().sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
-
-    entryCount.textContent = `${list.length} entries`;
-    entryList.innerHTML = list.map((s, idx) => {
-      return `
-        <div class="flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-black px-4 py-3">
-          <div>
-            <div class="text-sm text-emerald-200/70">#${idx + 1} • ${escapeHtml(s.game)} • ${escapeHtml(s.track)}</div>
-            <div class="font-semibold text-white">${escapeHtml(`${s.first} ${s.last}`)}</div>
-            <div class="text-xs text-emerald-200/60">${escapeHtml(s.time)} • ${escapeHtml(s.car || "—")} • iRating ${escapeHtml(ratingLabel(s))}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="text-xs text-emerald-200 hover:text-emerald-100" data-edit="${escapeHtml(s.id)}">Edit</button>
-            <button class="text-xs text-white/80 hover:text-white" data-delete="${escapeHtml(s.id)}">Delete</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    entryList.querySelectorAll("button[data-delete]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-delete");
-        if (!confirm("Delete this leaderboard entry?")) return;
-        socket.emit("adminDeleteScore", { pin: getPin(), id });
-      });
-    });
-
-    entryList.querySelectorAll("button[data-edit]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-edit");
-        const entry = scores.find(row => row.id === id);
-        if (!entry) return;
-        const nextTime = prompt("Update lap time (m:ss.mmm)", entry.time || "");
-        if (!nextTime) return;
-        socket.emit("adminUpdateScore", { pin: getPin(), id, time: nextTime.trim() });
-      });
-    });
-  }
 
   scoreForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -261,17 +212,6 @@
       course: document.getElementById("course").value,
       eventId: "evt_default"
     };
-    socket.emit("newScore", payload);
-  });
-
-  socket.on("submitResult", (res) => {
-    if (res.ok) {
-      submitHint.textContent = `Lap stored (${res.mode}). iRating ${res.ratingDelta >= 0 ? "+" : ""}${res.ratingDelta || 0}.`;
-      scoreForm.reset();
-    } else {
-      submitHint.textContent = res.reason === "not_better" ? "Not faster than existing time." : "Invalid entry.";
-    }
-  });
 
   socket.on("adminResult", (res) => {
     if (!res.ok) {
@@ -280,6 +220,7 @@
     }
     if (res.action === "updateScore") {
       showToast("Lap time updated.", true);
+
     } else if (res.action === "deleteScore") {
       showToast("Lap removed.", true);
     } else {
@@ -312,6 +253,7 @@
     ratings = r || {};
     renderEntries();
   });
+
 
   pingPin();
 </script>
