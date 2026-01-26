@@ -400,43 +400,21 @@ function startTelemetryUdp() {
   socket.bind(TELEMETRY_UDP_PORT, TELEMETRY_UDP_HOST);
 }
 
-function updateLeaderboardRow(id, patch) {
+function updateLeaderboardRowTime(id, nextTime) {
   const idx = scores.findIndex(s => s.id === id);
   if (idx === -1) return { ok: false, reason: "not_found" };
 
-  const current = scores[idx];
-  const next = {
-    ...current,
-    first: String(patch.first ?? current.first).trim(),
-    last: String(patch.last ?? current.last).trim(),
-    time: String(patch.time ?? current.time).trim(),
-    day: String(patch.day ?? current.day).trim(),
-    game: String(patch.game ?? current.game).trim(),
-    car: String(patch.car ?? current.car).trim(),
-    track: String(patch.track ?? current.track).trim(),
-    cohort: String(patch.cohort ?? current.cohort).trim() || "Guest",
-    course: String(patch.course ?? current.course).trim() || "—"
-  };
-
-  if (!next.first || !next.last || !next.time || !next.track || !next.game) {
-    return { ok: false, reason: "invalid" };
-  }
-  if (next.game !== "Assetto Corsa") return { ok: false, reason: "invalid_game" };
-
-  const parsed = timeToMs(next.time);
+  const parsed = timeToMs(nextTime);
   if (!Number.isFinite(parsed)) return { ok: false, reason: "invalid_time" };
 
-  const key = makeKey(next);
-  const dupIdx = scores.findIndex(s => s.id !== id && makeKey(s) === key);
-  if (dupIdx !== -1) return { ok: false, reason: "duplicate" };
-
-  scores[idx] = next;
+  const row = { ...scores[idx], time: String(nextTime).trim() };
+  scores[idx] = row;
   saveScores();
-  io.emit("scoreReplace", next);
+  io.emit("scoreReplace", row);
   broadcastCounts();
 
-  const ratingInfo = applyRatingUpdate(next);
-  return { ok: true, row: next, ratingInfo };
+  const ratingInfo = applyRatingUpdate(row);
+  return { ok: true, row, ratingInfo };
 }
 
 // -------------------- APIs --------------------
@@ -534,9 +512,9 @@ io.on("connection", (socket) => {
     socket.emit("adminResult", { ok: true, action: "deleteScore", removed });
   });
 
-  socket.on("adminUpdateScore", ({ pin, id, ...patch }) => {
+  socket.on("adminUpdateScore", ({ pin, id, time }) => {
     if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "updateScore", reason: "denied" });
-    const result = updateLeaderboardRow(String(id || ""), patch || {});
+    const result = updateLeaderboardRowTime(String(id || ""), String(time || ""));
     if (!result.ok) {
       return socket.emit("adminResult", { ok: false, action: "updateScore", reason: result.reason });
     }

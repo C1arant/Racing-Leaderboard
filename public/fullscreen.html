@@ -31,33 +31,36 @@
 
     .pulse-new { animation: pulseNew 1.15s ease-out 1; }
     @keyframes pulseNew {
-      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.26); background-color: rgba(16,185,129,0.06); }
-      60%  { box-shadow: 0 0 0 26px rgba(16,185,129,0.00); }
-      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.00); background-color: transparent; }
+      0%   { box-shadow: 0 0 0 0 rgba(14,165,233,0.26); background-color: rgba(14,165,233,0.06); }
+      60%  { box-shadow: 0 0 0 26px rgba(14,165,233,0.00); }
+      100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.00); background-color: transparent; }
     }
   </style>
 </head>
 
-<body class="min-h-screen bg-black text-white">
+<body class="min-h-screen bg-slate-950 text-slate-100">
   <div class="h-screen w-screen p-[var(--pad)] flex flex-col gap-[var(--pad)]">
     <header class="flex items-end justify-between gap-4">
       <div class="min-w-0">
-        <p class="t-sub uppercase tracking-[0.4em] text-emerald-400">Live Time Trial</p>
+        <p class="t-sub uppercase tracking-[0.4em] text-slate-500">Live Time Trial</p>
         <div class="flex items-center gap-3 min-w-0">
           <h1 class="t-title font-black tracking-tight truncate">Event Leaderboard</h1>
-          <span class="t-sub inline-flex items-center gap-2 bg-black/80 border border-emerald-500/20 rounded-full px-4 py-2 text-emerald-100">
+          <span class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2 text-slate-200">
             <span id="eventName" class="font-semibold truncate">—</span>
           </span>
+          <span class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2 text-slate-200">
+            View: <span id="gameLabel" class="font-semibold">Mixed</span>
+          </span>
         </div>
-        <p class="t-sub text-emerald-200/70 mt-2">Top 20 with Driver Rating (DR) deltas. Auto-updating.</p>
+        <p class="t-sub text-slate-400 mt-2">Top 20 with iRating deltas. Auto-updating.</p>
       </div>
 
       <div class="flex items-center gap-3 t-sub">
-        <span class="inline-flex items-center gap-2 bg-black/80 border border-emerald-500/20 rounded-full px-4 py-2">
+        <span class="inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-4 py-2">
           <span id="liveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500" aria-hidden="true"></span>
           <span id="liveLabel">Live</span>
         </span>
-        <a href="/" class="ml-3 text-sm px-3 py-2 rounded-md bg-black/80 border border-emerald-500/20 text-emerald-100 hover:bg-black">Back to display</a>
+        <a href="/" class="ml-3 text-sm px-3 py-2 rounded-md bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Back to display</a>
       </div>
     </header>
 
@@ -66,65 +69,66 @@
         <div class="rounded-[22px] border border-amber-500/35 bg-gradient-to-br from-amber-500/15 to-transparent p-[var(--pad)]">
           <div class="flex items-center justify-between">
             <div class="t-sub font-semibold">🥇 P1</div>
-            <div class="t-sub text-emerald-200/70" id="p1_meta">—</div>
+            <div class="t-sub text-slate-300" id="p1_meta">—</div>
           </div>
           <div class="mt-3">
             <div class="t-driver font-semibold truncate" id="p1_driver">—</div>
             <div class="t-time font-extrabold tracking-tight" id="p1_time">—</div>
-            <div class="t-sub text-emerald-200/70 mt-2 truncate" id="p1_detail">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p1_detail">—</div>
           </div>
         </div>
 
-        <div class="rounded-[22px] border border-emerald-500/25 bg-gradient-to-br from-emerald-500/10 to-transparent p-[var(--pad)]">
+        <div class="rounded-[22px] border border-slate-200/25 bg-gradient-to-br from-slate-200/10 to-transparent p-[var(--pad)]">
           <div class="flex items-center justify-between">
             <div class="t-sub font-semibold">🥈 P2</div>
-            <div class="t-sub text-emerald-200/70" id="p2_meta">—</div>
+            <div class="t-sub text-slate-300" id="p2_meta">—</div>
           </div>
           <div class="mt-3">
             <div class="t-driver font-semibold truncate" id="p2_driver">—</div>
             <div class="t-time font-extrabold tracking-tight" id="p2_time">—</div>
-            <div class="t-sub text-emerald-200/70 mt-2 truncate" id="p2_detail">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p2_detail">—</div>
           </div>
         </div>
 
         <div class="rounded-[22px] border border-orange-300/25 bg-gradient-to-br from-orange-500/12 to-transparent p-[var(--pad)]">
           <div class="flex items-center justify-between">
             <div class="t-sub font-semibold">🥉 P3</div>
-            <div class="t-sub text-emerald-200/70" id="p3_meta">—</div>
+            <div class="t-sub text-slate-300" id="p3_meta">—</div>
           </div>
           <div class="mt-3">
             <div class="t-driver font-semibold truncate" id="p3_driver">—</div>
             <div class="t-time font-extrabold tracking-tight" id="p3_time">—</div>
-            <div class="t-sub text-emerald-200/70 mt-2 truncate" id="p3_detail">—</div>
+            <div class="t-sub text-slate-300 mt-2 truncate" id="p3_detail">—</div>
           </div>
         </div>
       </section>
 
       <section class="col-span-12 lg:col-span-8 flex flex-col min-h-0">
-        <div class="rounded-[22px] border border-emerald-500/20 bg-black/80 overflow-hidden flex flex-col min-h-0">
-          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.75)] bg-black/55 flex items-center justify-between">
+        <div class="rounded-[22px] border border-slate-800 bg-slate-900/60 overflow-hidden flex flex-col min-h-0">
+          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.75)] bg-slate-950/55 flex items-center justify-between">
             <div class="t-table font-semibold">Top 20</div>
-            <div class="t-sub text-emerald-200/70"><span id="count">0 entries</span></div>
+            <div class="t-sub text-slate-400"><span id="count">0 entries</span></div>
           </div>
 
           <div class="flex-1 min-h-0 overflow-hidden">
             <table class="w-full">
-              <thead class="bg-black/45 text-emerald-200/70 t-sub">
+              <thead class="bg-slate-950/45 text-slate-300 t-sub">
                 <tr>
                   <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[6rem]">#</th>
                   <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Driver</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem]">Driver Rating (DR)</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem]">Time</th>
-                <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[12rem]">iRating</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem]">Time</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[14rem] hidden md:table-cell">Game</th>
+                  <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)]">Track</th>
                   <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] hidden lg:table-cell">Car</th>
                   <th class="text-left px-[var(--pad)] py-[calc(var(--pad)*0.6)] w-[18rem] hidden xl:table-cell">Tag</th>
                 </tr>
               </thead>
-              <tbody id="rows" class="divide-y divide-emerald-500/20 t-table"></tbody>
+              <tbody id="rows" class="divide-y divide-slate-800 t-table"></tbody>
             </table>
           </div>
 
-          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.6)] bg-black/40 t-sub text-emerald-200/70 flex justify-between">
+          <div class="px-[var(--pad)] py-[calc(var(--pad)*0.6)] bg-slate-950/40 t-sub text-slate-400 flex justify-between">
             <span>Auto-updating</span>
             <span id="footerNote">Pinned display</span>
           </div>
@@ -221,10 +225,14 @@
     cleanupPulse();
 
     const liveEvent = settings.fullscreen?.eventId || settings.liveEventId;
+    const gameFilter = settings.fullscreen?.game || "";
+
     const eventName = settings.events?.find(e => e.id === liveEvent)?.name || "—";
     eventNameEl.textContent = eventName;
+    gameLabelEl.textContent = gameFilter || "Mixed";
 
     let list = scores.filter(s => s.eventId === liveEvent);
+    if (gameFilter) list = list.filter(s => s.game === gameFilter);
 
     list.sort((a,b) => timeToMs(a.time) - timeToMs(b.time));
 
@@ -237,14 +245,15 @@
     rows.innerHTML = view.map((s, i) => {
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
       return `
-        <tr class="${pulse} hover:bg-black/30">
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] t-rank text-emerald-200/70 font-semibold">${i + 1}</td>
+        <tr class="${pulse} hover:bg-slate-950/30">
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] t-rank text-slate-300 font-semibold">${i + 1}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] font-semibold text-white">${escapeHtml(`${s.first} ${s.last}`)}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] text-sky-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] t-time font-extrabold text-white">${escapeHtml(s.time)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden md:table-cell">${escapeHtml(s.game)}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)]">${escapeHtml(s.track)}</td>
           <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden lg:table-cell">${escapeHtml(s.car || "—")}</td>
-          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden xl:table-cell text-emerald-200/70">${escapeHtml(`${s.cohort || "Guest"} • ${s.course || "—"}`)}</td>
+          <td class="px-[var(--pad)] py-[var(--rowPadY)] hidden xl:table-cell text-slate-300">${escapeHtml(`${s.cohort || "Guest"} • ${s.course || "—"}`)}</td>
         </tr>
       `;
     }).join("");

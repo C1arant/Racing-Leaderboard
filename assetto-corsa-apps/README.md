@@ -11,15 +11,6 @@ Place your app folders here, then copy them into your Assetto Corsa install:
 <Assetto Corsa>\\apps\\python\\<your_app>\\ui\\...
 ```
 
-## Included App: TelemetryRelay
-This repo now ships with a ready-to-copy `TelemetryRelay` Python app:
-
-```
-assetto-corsa-apps/TelemetryRelay
-```
-
-Copy that folder into `<Assetto Corsa>\apps\python\TelemetryRelay`, enable it in-game, and set
-the `UDP_HOST` in `app.py` to your server IP.
 
 If the app is a shared-memory or UDP exporter, follow its README for enabling it in Content Manager or the in-game
 apps menu. For live pit wall feeds across a network, UDP is usually the best option.

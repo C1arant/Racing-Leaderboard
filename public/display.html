@@ -21,127 +21,144 @@
 
     .pulse-new { animation: pulseNew 1.1s ease-out 1; }
     @keyframes pulseNew {
-      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,0.30); background-color: rgba(16,185,129,0.06); }
-      60%  { box-shadow: 0 0 0 22px rgba(16,185,129,0.00); }
-      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.00); background-color: transparent; }
+      0%   { box-shadow: 0 0 0 0 rgba(14,165,233,0.30); background-color: rgba(14,165,233,0.06); }
+      60%  { box-shadow: 0 0 0 22px rgba(14,165,233,0.00); }
+      100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.00); background-color: transparent; }
     }
   </style>
 </head>
 
-<body class="min-h-screen bg-black text-white">
+<body class="min-h-screen bg-slate-950 text-slate-100">
   <div class="max-w-[1800px] mx-auto px-6 py-8">
     <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
       <div class="min-w-0">
-        <p class="text-xs uppercase tracking-[0.35em] text-emerald-400">Racing Leaderboard</p>
+        <p class="text-xs uppercase tracking-[0.35em] text-slate-500">Racing Leaderboard</p>
         <div class="flex items-center gap-3 min-w-0 mt-1">
           <h1 class="t-title font-black tracking-tight truncate">Time Trial Rankings</h1>
-          <span id="liveEventBadge" class="t-sub inline-flex items-center gap-2 bg-black/80 border border-emerald-500/20 rounded-full px-3 py-2 text-emerald-100">
+          <span id="liveEventBadge" class="t-sub inline-flex items-center gap-2 bg-slate-900/60 border border-slate-800 rounded-full px-3 py-2 text-slate-200">
             LIVE: <span id="liveEventName" class="font-semibold">—</span>
           </span>
         </div>
-        <p class="t-sub text-emerald-200/70 mt-2">Filter by event or track. Ratings use Driver Rating (DR).</p>
+        <p class="t-sub text-slate-400 mt-2">Filter by event, track, or game. Ratings follow iRacing-style strength-of-field scoring.</p>
       </div>
       <nav class="flex items-center gap-2 t-sub">
-        <a href="/fullscreen" class="px-4 py-2 rounded-full bg-black/80 border border-emerald-500/20 text-emerald-100 hover:bg-black">Fullscreen</a>
-        <a href="/admin" class="px-4 py-2 rounded-full bg-black/80 border border-emerald-500/20 text-emerald-100 hover:bg-black">Admin</a>
+        <a href="/fullscreen" class="px-4 py-2 rounded-full bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Fullscreen</a>
+        <a href="/admin" class="px-4 py-2 rounded-full bg-slate-900/60 border border-slate-800 text-slate-200 hover:bg-slate-900">Admin</a>
       </nav>
     </header>
 
     <div class="grid grid-cols-12 gap-6">
       <aside class="col-span-12 lg:col-span-3 space-y-6">
-        <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5">
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5">
           <h2 class="text-base font-semibold">View</h2>
           <div class="flex gap-2 mt-3">
             <button id="tabLeaderboard" class="t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold">Leaderboard</button>
-            <button id="tabAttempts" class="t-base flex-1 px-3 py-2 rounded-xl border border-emerald-500/20 bg-black hover:bg-black transition">History</button>
+            <button id="tabAttempts" class="t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition">History</button>
           </div>
         </section>
 
-        <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 space-y-4">
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
           <div>
-            <label class="t-sub text-emerald-200/70">Search</label>
+            <label class="t-sub text-slate-400">Search</label>
             <input id="q" placeholder="Driver / track / car / course"
-              class="t-base mt-2 w-full bg-black border border-emerald-500/20 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
-            <button id="clearQ" class="t-base mt-2 px-3 py-2 rounded-xl border border-emerald-500/20 bg-black hover:bg-black transition w-full">Clear search</button>
+              class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600" />
+            <button id="clearQ" class="t-base mt-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition w-full">Clear search</button>
           </div>
 
           <div>
-            <label class="t-sub text-emerald-200/70">Event</label>
-            <select id="eventSel" class="t-base mt-2 w-full bg-black border border-emerald-500/20 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60">
+            <label class="t-sub text-slate-400">Event</label>
+            <select id="eventSel" class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600">
               <option value="">All Events</option>
             </select>
           </div>
 
           <div>
-            <label class="t-sub text-emerald-200/70">Track filter</label>
+            <label class="t-sub text-slate-400">Game</label>
+            <div class="mt-2 grid grid-cols-3 gap-2">
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="">
+                Mixed
+              </button>
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="Assetto Corsa">
+                AC
+              </button>
+              <button class="game t-base px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition" data-game="F1 25">
+                F1 25
+              </button>
+            </div>
+            <span id="lbCount" class="t-sub text-emerald-200/70">0 entries</span>
+          </div>
+
+          <div>
+            <label class="t-sub text-slate-400">Track filter</label>
             <input id="trackFilter" placeholder="Track name"
-              class="t-base mt-2 w-full bg-black border border-emerald-500/20 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
-            <button id="clearTrack" class="t-base mt-2 px-3 py-2 rounded-xl border border-emerald-500/20 bg-black hover:bg-black transition w-full">Clear track</button>
+              class="t-base mt-2 w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-600" />
+            <button id="clearTrack" class="t-base mt-2 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition w-full">Clear track</button>
           </div>
         </section>
 
-        <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 space-y-3">
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">
           <h2 class="text-base font-semibold">Snapshot</h2>
-          <div class="rounded-2xl border border-emerald-500/20 bg-black/70 p-3">
-            <p class="text-xs text-emerald-200/70">Total entries</p>
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-xs text-slate-400">Total entries</p>
             <p id="statTotal" class="text-2xl font-bold">0</p>
           </div>
-          <div class="rounded-2xl border border-emerald-500/20 bg-black/70 p-3">
-            <p class="text-xs text-emerald-200/70">Top driver</p>
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-3">
+            <p class="text-xs text-slate-400">Top driver</p>
             <p id="statDriver" class="text-lg font-semibold">—</p>
-            <p id="statTime" class="text-xs text-emerald-200/70">—</p>
+            <p id="statTime" class="text-xs text-slate-400">—</p>
           </div>
         </section>
       </aside>
 
       <main class="col-span-12 lg:col-span-9 space-y-6">
-        <section id="leaderboardView" class="rounded-3xl border border-emerald-500/20 bg-black/80 overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-4 bg-black/60">
+        <section id="leaderboardView" class="rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 bg-slate-950/60">
             <div>
               <h2 class="text-lg font-semibold">Leaderboard</h2>
-              <p class="t-sub text-emerald-200/70">Fastest time first</p>
+              <p class="t-sub text-slate-400">Fastest time first</p>
             </div>
-            <span id="lbCount" class="t-sub text-emerald-200/70">0 entries</span>
+            <span id="lbCount" class="t-sub text-slate-400">0 entries</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full t-base">
-              <thead class="bg-black/60 text-emerald-200/70">
+              <thead class="bg-slate-950/60 text-slate-300">
                 <tr>
                   <th class="text-left px-5 py-4 w-16">#</th>
                   <th class="text-left px-5 py-4">Driver</th>
-                  <th class="text-left px-5 py-4 w-44">Driver Rating (DR)</th>
+                  <th class="text-left px-5 py-4 w-44">iRating</th>
                   <th class="text-left px-5 py-4 w-36">Time</th>
                   <th class="text-left px-5 py-4">Track</th>
                   <th class="text-left px-5 py-4">Car</th>
                   <th class="text-left px-5 py-4 w-64">Event</th>
                 </tr>
               </thead>
-              <tbody id="lbRows" class="divide-y divide-emerald-500/20"></tbody>
+              <tbody id="lbRows" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
         </section>
 
-        <section id="attemptsView" class="hidden rounded-3xl border border-emerald-500/20 bg-black/80 overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-4 bg-black/60">
+        <section id="attemptsView" class="hidden rounded-3xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+          <div class="flex items-center justify-between px-5 py-4 bg-slate-950/60">
             <div>
               <h2 class="text-lg font-semibold">Lap History</h2>
-              <p class="t-sub text-emerald-200/70">Newest first</p>
+              <p class="t-sub text-slate-400">Newest first</p>
             </div>
-            <span id="attCount" class="t-sub text-emerald-200/70">0 laps</span>
+            <span id="attCount" class="t-sub text-slate-400">0 laps</span>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full t-base">
-              <thead class="bg-black/60 text-emerald-200/70">
+              <thead class="bg-slate-950/60 text-slate-300">
                 <tr>
                   <th class="text-left px-5 py-4 w-44">When</th>
                   <th class="text-left px-5 py-4">Driver</th>
                   <th class="text-left px-5 py-4 w-36">Time</th>
+                  <th class="text-left px-5 py-4 w-36">Game</th>
                   <th class="text-left px-5 py-4">Track</th>
                   <th class="text-left px-5 py-4">Car</th>
                   <th class="text-left px-5 py-4 w-64">Event</th>
                 </tr>
               </thead>
-              <tbody id="attRows" class="divide-y divide-emerald-500/20"></tbody>
+              <tbody id="attRows" class="divide-y divide-slate-800"></tbody>
             </table>
           </div>
         </section>
@@ -219,11 +236,11 @@
 
     tabLeaderboard.className = lbOn
       ? "t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold"
-      : "t-base flex-1 px-3 py-2 rounded-xl border border-emerald-500/20 bg-black hover:bg-black transition";
+      : "t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition";
 
     tabAttempts.className = !lbOn
       ? "t-base flex-1 px-3 py-2 rounded-xl bg-white text-black font-semibold"
-      : "t-base flex-1 px-3 py-2 rounded-xl border border-emerald-500/20 bg-black hover:bg-black transition";
+      : "t-base flex-1 px-3 py-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-900 transition";
 
     render();
   }
@@ -299,14 +316,15 @@
       const rank = i + 1;
       const pulse = pulseIds.has(s.id) ? "pulse-new" : "";
       return `
-        <tr class="${pulse} hover:bg-black/30">
-          <td class="px-5 py-4 text-emerald-200/70 font-semibold">${rank}</td>
+        <tr class="${pulse} hover:bg-slate-950/30">
+          <td class="px-5 py-4 text-slate-300 font-semibold">${rank}</td>
           <td class="px-5 py-4 text-white font-medium">${escapeHtml(`${s.first} ${s.last}`)}</td>
           <td class="px-5 py-4 text-sky-300 font-semibold">${escapeHtml(getRatingDisplay(s))}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(s.time)}</td>
-          <td class="px-5 py-4 text-white">${escapeHtml(s.track)}</td>
-          <td class="px-5 py-4 text-emerald-200/70">${escapeHtml(s.car || "—")}</td>
-          <td class="px-5 py-4 text-emerald-200/70">${escapeHtml(s.eventName || currentEventName(s.eventId))}</td>
+          <td class="px-5 py-4 text-slate-200">${escapeHtml(s.game)}</td>
+          <td class="px-5 py-4 text-slate-100">${escapeHtml(s.track)}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(s.car || "—")}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(s.eventName || currentEventName(s.eventId))}</td>
         </tr>
       `;
     }).join("");
@@ -324,13 +342,14 @@
     attRows.innerHTML = view.map((a) => {
       const when = new Date(a.createdAt).toLocaleString("en-GB", { year:"2-digit", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
       return `
-        <tr class="hover:bg-black/30">
-          <td class="px-5 py-4 text-emerald-200/70">${escapeHtml(when)}</td>
+        <tr class="hover:bg-slate-950/30">
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(when)}</td>
           <td class="px-5 py-4 text-white font-medium">${escapeHtml(`${a.first} ${a.last}`)}</td>
           <td class="px-5 py-4 text-white font-extrabold t-time tracking-tight">${escapeHtml(a.time)}</td>
-          <td class="px-5 py-4 text-white">${escapeHtml(a.track)}</td>
-          <td class="px-5 py-4 text-emerald-200/70">${escapeHtml(a.car || "—")}</td>
-          <td class="px-5 py-4 text-emerald-200/70">${escapeHtml(a.eventName || currentEventName(a.eventId))}</td>
+          <td class="px-5 py-4 text-slate-200">${escapeHtml(a.game)}</td>
+          <td class="px-5 py-4 text-slate-100">${escapeHtml(a.track)}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(a.car || "—")}</td>
+          <td class="px-5 py-4 text-slate-300">${escapeHtml(a.eventName || currentEventName(a.eventId))}</td>
         </tr>
       `;
     }).join("");
@@ -406,6 +425,7 @@
     render();
   });
 
+  setActiveGame("");
   setView("leaderboard");
   fetchAttemptsInitial();
 </script>

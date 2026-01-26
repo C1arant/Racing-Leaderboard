@@ -43,10 +43,7 @@
         </section>
 
         <section class="rounded-3xl border border-emerald-500/20 bg-black/80 p-5 shadow-lg">
-          <div class="flex items-center justify-between mb-3">
-            <h2 id="formTitle" class="text-lg font-semibold">Add Lap</h2>
-            <span id="editBadge" class="hidden text-xs rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-emerald-100">Editing</span>
-          </div>
+
 
           <form id="scoreForm" class="space-y-3">
             <div id="editBanner" class="hidden rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
@@ -70,13 +67,7 @@
                 class="mt-1 w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
             </div>
 
-            <input id="game" type="hidden" value="Assetto Corsa" />
 
-            <div>
-              <label class="text-xs text-emerald-200/70">Day</label>
-              <div class="mt-1 flex gap-2">
-                <input id="day" class="w-full bg-black border border-emerald-500/30 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500/60" />
-                <button id="setToday" type="button" class="px-3 py-2 rounded-xl border border-emerald-500/40 text-emerald-100 hover:bg-emerald-500/10">Today</button>
               </div>
             </div>
 
@@ -110,7 +101,7 @@
               </div>
             </div>
 
-            <button id="submitButton" class="w-full px-3 py-2 rounded-xl bg-emerald-500 text-black font-semibold hover:bg-emerald-400">
+
               Submit Lap
             </button>
 
@@ -174,18 +165,6 @@
   const entryCount = document.getElementById("entryCount");
   const entryList = document.getElementById("entryList");
 
-  const scoreForm = document.getElementById("scoreForm");
-  const submitHint = document.getElementById("submitHint");
-  const setToday = document.getElementById("setToday");
-  const dayInput = document.getElementById("day");
-  const formTitle = document.getElementById("formTitle");
-  const submitButton = document.getElementById("submitButton");
-  const editBadge = document.getElementById("editBadge");
-  const editBanner = document.getElementById("editBanner");
-  const editName = document.getElementById("editName");
-  const cancelEdit = document.getElementById("cancelEdit");
-
-  let editId = null;
 
   function escapeHtml(s) {
     return String(s ?? "")
@@ -218,80 +197,6 @@
     const delta = rating.lastChange;
     const prefix = delta > 0 ? `+${delta}` : `${delta}`;
     return `${rating.rating} (${prefix})`;
-  }
-
-  function renderEntries() {
-    const list = scores.slice().sort((a, b) => timeToMs(a.time) - timeToMs(b.time));
-
-    entryCount.textContent = `${list.length} entries`;
-    entryList.innerHTML = list.map((s, idx) => {
-      return `
-        <div class="flex items-center justify-between rounded-2xl border border-emerald-500/20 bg-black px-4 py-3">
-          <div>
-            <div class="text-sm text-emerald-200/70">#${idx + 1} • ${escapeHtml(s.track)}</div>
-            <div class="font-semibold text-white">${escapeHtml(`${s.first} ${s.last}`)}</div>
-            <div class="text-xs text-emerald-200/60">${escapeHtml(s.time)} • ${escapeHtml(s.car || "—")} • DR ${escapeHtml(ratingLabel(s))}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="text-xs text-emerald-200 hover:text-emerald-100" data-edit="${escapeHtml(s.id)}">Edit</button>
-            <button class="text-xs text-white/80 hover:text-white" data-delete="${escapeHtml(s.id)}">Delete</button>
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    entryList.querySelectorAll("button[data-delete]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-delete");
-        if (!confirm("Delete this leaderboard entry?")) return;
-        socket.emit("adminDeleteScore", { pin: getPin(), id });
-      });
-    });
-
-    entryList.querySelectorAll("button[data-edit]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-edit");
-        const entry = scores.find(row => row.id === id);
-        if (!entry) return;
-        editId = id;
-        formTitle.textContent = "Edit Lap";
-        submitButton.textContent = "Save Changes";
-        editBadge.classList.remove("hidden");
-        editBanner.classList.remove("hidden");
-        editName.textContent = `${entry.first} ${entry.last}`.trim();
-
-        document.getElementById("first").value = entry.first || "";
-        document.getElementById("last").value = entry.last || "";
-        document.getElementById("time").value = entry.time || "";
-        document.getElementById("day").value = entry.day || "";
-        document.getElementById("car").value = entry.car || "";
-        document.getElementById("track").value = entry.track || "";
-        document.getElementById("cohort").value = entry.cohort || "Guest";
-        document.getElementById("course").value = entry.course || "";
-      });
-    });
-  }
-
-  function clearEdit() {
-    editId = null;
-    formTitle.textContent = "Add Lap";
-    submitButton.textContent = "Submit Lap";
-    editBadge.classList.add("hidden");
-    editBanner.classList.add("hidden");
-    editName.textContent = "";
-  }
-
-  cancelEdit.addEventListener("click", () => {
-    clearEdit();
-    scoreForm.reset();
-    document.getElementById("game").value = "Assetto Corsa";
-  });
-
-  function setDayToday() {
-    dayInput.value = new Date().toLocaleDateString("en-GB", { weekday: "short" });
-  }
-
-  setToday.addEventListener("click", setDayToday);
 
   scoreForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -307,24 +212,6 @@
       course: document.getElementById("course").value,
       eventId: "evt_default"
     };
-    if (editId) {
-      socket.emit("adminUpdateScore", { pin: getPin(), id: editId, ...payload });
-    } else {
-      socket.emit("newScore", payload);
-    }
-  });
-
-  socket.on("submitResult", (res) => {
-    if (res.ok) {
-      submitHint.textContent = `Lap stored (${res.mode}). DR ${res.ratingDelta >= 0 ? "+" : ""}${res.ratingDelta || 0}.`;
-      document.getElementById("time").value = "";
-      document.getElementById("car").value = "";
-      document.getElementById("track").value = "";
-      document.getElementById("day").value = "";
-    } else {
-      submitHint.textContent = res.reason === "not_better" ? "Not faster than existing time." : "Invalid entry.";
-    }
-  });
 
   socket.on("adminResult", (res) => {
     if (!res.ok) {
@@ -333,9 +220,7 @@
     }
     if (res.action === "updateScore") {
       showToast("Lap time updated.", true);
-      clearEdit();
-      scoreForm.reset();
-      document.getElementById("game").value = "Assetto Corsa";
+
     } else if (res.action === "deleteScore") {
       showToast("Lap removed.", true);
     } else {
@@ -369,7 +254,7 @@
     renderEntries();
   });
 
-  setDayToday();
+
   pingPin();
 </script>
 </body>
