@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Live Track Map</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    .track-grid {
+      background-image:
+        linear-gradient(to right, rgba(239,68,68,0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(239,68,68,0.08) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-black text-white">
+  <div class="max-w-[1600px] mx-auto px-6 py-8">
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div>
+        <p class="text-xs uppercase tracking-[0.35em] text-red-500">Racing Leaderboard</p>
+        <h1 class="text-3xl md:text-4xl font-black tracking-tight">Live Track Map</h1>
+        <p class="text-white/60">Pit wall overview of car positions and lap status (telemetry required).</p>
+      </div>
+      <nav class="flex items-center gap-2 text-sm">
+        <a href="/" class="px-4 py-2 rounded-md border border-white/20 bg-red-500/10 hover:bg-red-500/15">Display</a>
+        <a href="/pitwall" class="px-4 py-2 rounded-md border border-white/20 bg-red-500/10 hover:bg-red-500/15">Pit Wall</a>
+      </nav>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <section class="col-span-12 lg:col-span-8 rounded-md border border-white/10 bg-black/90 p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Track Map</h2>
+          <div class="text-right">
+            <div id="trackLabel" class="text-xs text-white/60">Track: Spa-Francorchamps</div>
+            <div id="telemetryStatus" class="text-xs text-white/60">Waiting for telemetry…</div>
+          </div>
+        </div>
+        <div class="track-grid relative w-full aspect-[16/9] rounded-lg border border-white/10 bg-black overflow-hidden">
+          <svg id="trackSvg" class="absolute inset-0 w-full h-full" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet">
+            <path id="trackPath" d=""
+              fill="none" stroke="rgba(239,68,68,0.65)" stroke-width="6" stroke-dasharray="10 10" />
+            <circle id="carDot" cx="120" cy="280" r="10" fill="#ef4444" />
+          </svg>
+        </div>
+      </section>
+
+      <section class="col-span-12 lg:col-span-4 space-y-6">
+        <div class="rounded-md border border-white/10 bg-black/90 p-5 shadow-lg">
+          <h2 class="text-lg font-semibold">Session</h2>
+          <div class="mt-4 space-y-3 text-sm text-white/60">
+            <div class="flex items-center justify-between">
+              <span>Active car</span>
+              <span id="carLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Lap</span>
+              <span id="lapLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Last lap</span>
+              <span id="lastLapLabel" class="text-white">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span>Delta</span>
+              <span id="deltaLabel" class="text-white">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-md border border-white/10 bg-black/90 p-5 shadow-lg">
+          <h2 class="text-lg font-semibold">Telemetry Notes</h2>
+          <p class="text-sm text-white/60 mt-3">
+            This screen requires live telemetry streaming from the game. Connect a telemetry
+            exporter and stream data into the server to update the map and stats.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+<script>
+  const socket = io();
+
+  const trackLabel = document.getElementById("trackLabel");
+  const telemetryStatus = document.getElementById("telemetryStatus");
+  const trackSvg = document.getElementById("trackSvg");
+  const trackPath = document.getElementById("trackPath");
+  const carDot = document.getElementById("carDot");
+  const carLabel = document.getElementById("carLabel");
+  const lapLabel = document.getElementById("lapLabel");
+  const lastLapLabel = document.getElementById("lastLapLabel");
+  const deltaLabel = document.getElementById("deltaLabel");
+  const params = new URLSearchParams(window.location.search);
+  let defaultTrack = "spa";
+  let activeTrack = params.get("track") || defaultTrack;
+  let telemetryLive = false;
+
+  async function loadTrack(trackId) {
+    try {
+      const res = await fetch(`/tracks/${encodeURIComponent(trackId)}.json`);
+      if (!res.ok) throw new Error("missing");
+      const data = await res.json();
+      trackLabel.textContent = `Track: ${data.name || trackId}`;
+      trackSvg.setAttribute("viewBox", data.viewBox || "0 0 1000 560");
+      trackPath.setAttribute("d", data.path || "");
+    } catch (err) {
+      trackLabel.textContent = `Track: ${trackId} (not found)`;
+      trackPath.setAttribute(\"d\", \"\");
+    }
+  }
+
+  async function loadDefaultTrack() {
+    try {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      defaultTrack = data.defaultTrack || defaultTrack;
+      if (!params.get("track")) {
+        activeTrack = defaultTrack;
+      }
+      loadTrack(activeTrack);
+    } catch {
+      loadTrack(activeTrack);
+    }
+  }
+
+  loadDefaultTrack();
+
+  // Placeholder animation until telemetry is wired.
+  let angle = 0;
+  setInterval(() => {
+    if (telemetryLive) return;
+    angle = (angle + 2) % 360;
+    const rad = (angle * Math.PI) / 180;
+    const cx = 500 + Math.cos(rad) * 360;
+    const cy = 280 + Math.sin(rad) * 180;
+    carDot.setAttribute("cx", cx.toFixed(1));
+    carDot.setAttribute("cy", cy.toFixed(1));
+  }, 120);
+
+  socket.on("telemetryUpdate", (payload) => {
+    telemetryStatus.textContent = "Live telemetry connected";
+    telemetryLive = true;
+    if (!payload) return;
+    if (typeof payload.x === "number" && typeof payload.y === "number") {
+      carDot.setAttribute("cx", payload.x.toFixed(1));
+      carDot.setAttribute("cy", payload.y.toFixed(1));
+    }
+    if (payload.track && payload.track !== activeTrack) {
+      activeTrack = payload.track;
+      loadTrack(activeTrack);
+    }
+    carLabel.textContent = payload.car || "—";
+    lapLabel.textContent = payload.lap ?? "—";
+    lastLapLabel.textContent = payload.lastLap || "—";
+    deltaLabel.textContent = payload.delta || "—";
+  });
+
+  socket.on("settingsUpdate", (s) => {
+    defaultTrack = s?.defaultTrack || defaultTrack;
+    if (!telemetryLive && !params.get("track")) {
+      activeTrack = defaultTrack;
+      loadTrack(activeTrack);
+    }
+  });
+</script>
+</body>
+</html>

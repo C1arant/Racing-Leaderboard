@@ -2,10 +2,12 @@
 // Run: npm start
 import express from "express";
 import http from "http";
+import dgram from "dgram";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import Database from "better-sqlite3";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,15 +20,18 @@ app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "display.html")));
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, "public", "admin.html")));
 app.get("/fullscreen", (req, res) => res.sendFile(path.join(__dirname, "public", "fullscreen.html")));
-// Serve the rig UI at /rig for convenience (also available as /rig.html)
-app.get("/rig", (req, res) => res.sendFile(path.join(__dirname, "public", "rig.html")));
+app.get("/map", (req, res) => res.sendFile(path.join(__dirname, "public", "map.html")));
+app.get("/pitwall", (req, res) => res.sendFile(path.join(__dirname, "public", "pitwall.html")));
 
-const DATA_FILE = path.join(__dirname, "scores.json");        // clean leaderboard rows
-const ATTEMPTS_FILE = path.join(__dirname, "attempts.json");  // full history
-const SETTINGS_FILE = path.join(__dirname, "settings.json");
-const RATINGS_FILE = path.join(__dirname, "ratings.json");    // ELO-lite ratings
+const DATA_FILE = path.join(__dirname, "scores.json");
+const RATINGS_FILE = path.join(__dirname, "ratings.json");
+const DB_FILE = path.join(__dirname, "leaderboard.db");
 
 const ADMIN_PIN = process.env.ADMIN_PIN || "1234";
+const TELEMETRY_UDP_PORT = Number(process.env.TELEMETRY_UDP_PORT || "41234");
+const TELEMETRY_UDP_HOST = process.env.TELEMETRY_UDP_HOST || "0.0.0.0";
+
+const DEFAULT_RATING = 1350;
 
 // -------------------- Persistence --------------------
 function loadJson(file, fallback) {
@@ -40,159 +45,214 @@ function loadJson(file, fallback) {
   }
   return fallback;
 }
-function saveJson(file, data) {
+
+const db = new Database(DB_FILE);
+db.pragma("journal_mode = WAL");
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS scores (
+    id TEXT PRIMARY KEY,
+    first TEXT NOT NULL,
+    last TEXT NOT NULL,
+    time TEXT NOT NULL,
+    day TEXT,
+    game TEXT NOT NULL,
+    car TEXT,
+    track TEXT NOT NULL,
+    cohort TEXT,
+    course TEXT,
+    createdAt TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS ratings (
+    key TEXT PRIMARY KEY,
+    rating INTEGER NOT NULL,
+    lastChange INTEGER NOT NULL,
+    lastPosition INTEGER,
+    lastFieldSize INTEGER,
+    updatedAt TEXT NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`);
+
+function getSetting(key, fallback) {
+  const row = db.prepare("SELECT value FROM settings WHERE key = ?").get(key);
+  if (!row) {
+    db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(key, JSON.stringify(fallback));
+    return fallback;
+  }
   try {
-    fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf-8");
-  } catch (e) {
-    console.error("Save failed:", file, e);
+    return JSON.parse(row.value);
+  } catch {
+    return fallback;
   }
 }
-function saveScores() { saveJson(DATA_FILE, scores); }
-function saveAttempts() { saveJson(ATTEMPTS_FILE, attempts); }
-function saveSettings() { saveJson(SETTINGS_FILE, settings); }
-function saveRatings() { saveJson(RATINGS_FILE, ratings); }
+
+function setSetting(key, value) {
+  db.prepare("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+    .run(key, JSON.stringify(value));
+}
+
+function migrateJsonIfNeeded() {
+  const scoreCount = db.prepare("SELECT COUNT(*) AS count FROM scores").get().count;
+  if (scoreCount === 0) {
+    const scores = loadJson(DATA_FILE, []).map((row) => ({
+      id: row.id || makeId(),
+      first: row.first || "",
+      last: row.last || "",
+      time: row.time || "",
+      day: row.day || "",
+      game: row.game || "Assetto Corsa",
+      car: row.car || "",
+      track: row.track || "",
+      cohort: row.cohort || "Guest",
+      course: row.course || "—",
+      createdAt: row.createdAt || new Date().toISOString()
+    }));
+    const insert = db.prepare(`
+      INSERT OR IGNORE INTO scores
+      (id, first, last, time, day, game, car, track, cohort, course, createdAt)
+      VALUES (@id, @first, @last, @time, @day, @game, @car, @track, @cohort, @course, @createdAt)
+    `);
+    const insertMany = db.transaction((rows) => {
+      rows.forEach((row) => insert.run(row));
+    });
+    insertMany(scores);
+  }
+
+  const ratingCount = db.prepare("SELECT COUNT(*) AS count FROM ratings").get().count;
+  if (ratingCount === 0) {
+    const ratings = loadJson(RATINGS_FILE, {});
+    const insert = db.prepare(`
+      INSERT OR REPLACE INTO ratings
+      (key, rating, lastChange, lastPosition, lastFieldSize, updatedAt)
+      VALUES (@key, @rating, @lastChange, @lastPosition, @lastFieldSize, @updatedAt)
+    `);
+    const insertMany = db.transaction((rows) => {
+      rows.forEach((row) => insert.run(row));
+    });
+    const rows = Object.entries(ratings).map(([key, value]) => ({
+      key,
+      rating: value.rating ?? DEFAULT_RATING,
+      lastChange: value.lastChange ?? 0,
+      lastPosition: value.lastResult?.position ?? null,
+      lastFieldSize: value.lastResult?.fieldSize ?? null,
+      updatedAt: value.updatedAt || new Date().toISOString()
+    }));
+    insertMany(rows);
+  }
+}
+
+migrateJsonIfNeeded();
+
+function loadScoresFromDb() {
+  return db.prepare("SELECT * FROM scores").all();
+}
+
+function loadRatingsFromDb() {
+  const rows = db.prepare("SELECT * FROM ratings").all();
+  const out = {};
+  for (const row of rows) {
+    out[row.key] = {
+      rating: row.rating,
+      lastChange: row.lastChange,
+      lastResult: row.lastPosition ? { position: row.lastPosition, fieldSize: row.lastFieldSize } : null,
+      updatedAt: row.updatedAt
+    };
+  }
+  return out;
+}
 
 function isAdmin(pin) { return String(pin || "") === String(ADMIN_PIN); }
 function makeId() {
   return (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
-// -------------------- Rating System (ELO-lite) --------------------
-function getRatingKey(game, track, first, last) {
-  return `${String(game).trim()}|${String(track).trim().toLowerCase()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
+// -------------------- Rating System --------------------
+function getRatingKey(game, first, last) {
+  return `${String(game).trim()}|${String(first).trim().toLowerCase()}|${String(last).trim().toLowerCase()}`;
 }
 
-function getDriverRating(game, track, first, last) {
-  const key = getRatingKey(game, track, first, last);
+function getRatingEntry(game, first, last) {
+  const key = getRatingKey(game, first, last);
   if (!ratings[key]) {
     ratings[key] = {
-      rating: 1000,
+      rating: DEFAULT_RATING,
       lastChange: 0,
+      lastResult: null,
       updatedAt: new Date().toISOString()
     };
+    saveRating(key, ratings[key]);
   }
   return ratings[key];
 }
 
-function getFieldMedianTime(game, track) {
-  const times = scores
-    .filter(s => s.game === game && s.track.toLowerCase() === track.toLowerCase())
+function fieldForEntry(entry) {
+  return scores.filter(s =>
+    s.game === entry.game &&
+    s.track.toLowerCase() === entry.track.toLowerCase()
+  );
+}
+
+function calculatePositionDelta(entry) {
+  const field = fieldForEntry(entry);
+  const fieldSize = field.length;
+
+  const myTime = timeToMs(entry.time);
+  const position = field
     .map(s => timeToMs(s.time))
-    .filter(t => t !== Infinity && t > 0)
-    .sort((a, b) => a - b);
-  
-  if (times.length === 0) return Infinity;
-  const mid = Math.floor(times.length / 2);
-  return times.length % 2 === 0 ? (times[mid - 1] + times[mid]) / 2 : times[mid];
-}
+    .filter(t => t < myTime).length + 1;
 
-function calculateRatingDelta(oldPBMs, newPBMs, newTime, medianMs) {
-  let delta = 0;
-
-  // PB improvement points
-  if (newPBMs < oldPBMs && oldPBMs > 0) {
-    const improvementPct = (oldPBMs - newPBMs) / oldPBMs;
-    delta += Math.max(1, Math.min(25, Math.round(improvementPct * 400)));
+  if (!Number.isFinite(myTime)) {
+    return { delta: 0, position, fieldSize };
   }
 
-  // Field position points
-  if (medianMs !== Infinity && medianMs > 0) {
-    if (newPBMs < medianMs) {
-      // Faster than median: +5 to +15
-      const percentageFasterThanMedian = (medianMs - newPBMs) / medianMs;
-      delta += Math.max(5, Math.min(15, Math.round(percentageFasterThanMedian * 15)));
-    }
-    // Slower than median: 0 (don't punish)
+  const rating = getRatingEntry(entry.game, entry.first, entry.last);
+  const lastPosition = rating.lastResult?.position;
+
+  if (!lastPosition || !Number.isFinite(lastPosition)) {
+    return { delta: 0, position, fieldSize };
   }
 
-  return delta;
+  const delta = (lastPosition - position) * 5;
+
+  return { delta, position, fieldSize };
 }
 
-// Normalize name for display
-function normalizeName(first, last, nameMode) {
-  if (nameMode === "FIRST_INITIAL") {
-    return `${first.charAt(0)}. ${last}`;
-  } else if (nameMode === "FIRST_LAST_INITIAL") {
-    return `${first} ${last.charAt(0)}.`;
-  }
-  return `${first} ${last}`;
+function saveRating(key, rating) {
+  db.prepare(`
+    INSERT INTO ratings (key, rating, lastChange, lastPosition, lastFieldSize, updatedAt)
+    VALUES (@key, @rating, @lastChange, @lastPosition, @lastFieldSize, @updatedAt)
+    ON CONFLICT(key) DO UPDATE SET
+      rating = excluded.rating,
+      lastChange = excluded.lastChange,
+      lastPosition = excluded.lastPosition,
+      lastFieldSize = excluded.lastFieldSize,
+      updatedAt = excluded.updatedAt
+  `).run({
+    key,
+    rating: rating.rating,
+    lastChange: rating.lastChange,
+    lastPosition: rating.lastResult?.position ?? null,
+    lastFieldSize: rating.lastResult?.fieldSize ?? null,
+    updatedAt: rating.updatedAt
+  });
 }
 
-// -------------------- Events helpers --------------------
-let scores = loadJson(DATA_FILE, []);
-let attempts = loadJson(ATTEMPTS_FILE, []);
-let ratings = loadJson(RATINGS_FILE, {});
+// -------------------- Data --------------------
+let scores = loadScoresFromDb();
+let ratings = loadRatingsFromDb();
 
-let settings = loadJson(SETTINGS_FILE, {
-  events: [
-    { id: "evt_default", name: "Open Day Time Trial", isLive: true, createdAt: new Date().toISOString() }
-  ],
-  bestPerDriver: true,
+let settings = {
+  defaultTrack: getSetting("defaultTrack", "spa")
+};
 
-  fullscreen: {
-    eventId: "evt_default",
-    game: "",               // ""=Mixed, "Assetto Corsa", "F1 25"
-    followLiveEvent: true,
-    useTvCycle: false
-  },
-
-  tvCycleEnabled: false,
-  tvCycleRateMs: 15000,
-
-  demoEnabled: false,
-  demoRateMs: 4000,
-
-  // New features
-  lecturerMode: false,
-  privacy: {
-    nameMode: "FULL",       // "FULL", "FIRST_INITIAL", "FIRST_LAST_INITIAL"
-    hideCourse: false
-  },
-
-  autoScroll: false,
-  autoScrollRateMs: 15000,
-  autoScrollPauseMs: 2000,
-
-  spotlight: false,
-  spotlightRateMs: 10000,
-  spotlightMode: "recent", // "recent", "random", "improved"
-
-  presets: {
-    openDay: false,
-    tournament: false,
-    teaching: false,
-    marketing: false
-  }
-});
-
-// -------------------- Events helpers --------------------
-function getLiveEvent() {
-  return settings.events.find(e => e.isLive) || settings.events[0];
-}
-function getEventById(id) {
-  return settings.events.find(e => e.id === id);
-}
 function getPublicSettings() {
-  const live = getLiveEvent();
   return {
-    ...settings,
-    liveEventId: live?.id,
-    liveEventName: live?.name
+    defaultTrack: settings.defaultTrack
   };
-}
-function createEvent(name) {
-  const id = `evt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-  const evt = { id, name: String(name || "").trim() || "Untitled Event", isLive: false, createdAt: new Date().toISOString() };
-  settings.events.unshift(evt);
-  saveSettings();
-  io.emit("settingsUpdate", getPublicSettings());
-  return evt;
-}
-function setLiveEvent(eventId) {
-  settings.events = settings.events.map(e => ({ ...e, isLive: e.id === eventId }));
-  if (settings.fullscreen?.followLiveEvent) settings.fullscreen.eventId = eventId;
-  saveSettings();
-  io.emit("settingsUpdate", getPublicSettings());
 }
 
 // -------------------- Time parsing --------------------
@@ -214,14 +274,8 @@ function timeToMs(t) {
 function sanitiseScore(data) {
   if (!data) return null;
 
-  const live = getLiveEvent();
-  const eventIdRaw = String(data.eventId || live?.id || "evt_default").trim() || "evt_default";
-  const eventId = getEventById(eventIdRaw) ? eventIdRaw : (live?.id || "evt_default");
-
   const score = {
-    id: data.id || makeId(),        // leaderboard row id
-    attemptId: makeId(),            // always unique attempt id
-
+    id: data.id || makeId(),
     first: String(data.first || "").trim(),
     last: String(data.last || "").trim(),
     time: String(data.time || "").trim(),
@@ -229,327 +283,193 @@ function sanitiseScore(data) {
     game: String(data.game || "").trim(),
     car: String(data.car || "").trim(),
     track: String(data.track || "").trim(),
-
     cohort: String(data.cohort || "").trim() || "Guest",
     course: String(data.course || "").trim() || "—",
-
-    eventId,
-    createdAt: data.createdAt || new Date().toISOString(),
-
-    demo: !!data.demo
+    createdAt: data.createdAt || new Date().toISOString()
   };
 
   if (!score.first || !score.last || !score.time || !score.track || !score.game) return null;
-  if (score.game !== "Assetto Corsa" && score.game !== "F1 25") return null;
+  if (score.game !== "Assetto Corsa") return null;
 
   return score;
 }
 
-// One row per person per game+track+event
+// One row per person per game+track
 function makeKey(s) {
   const first = String(s.first || "").trim().toLowerCase();
-  const last  = String(s.last || "").trim().toLowerCase();
-  const game  = String(s.game || "").trim();
+  const last = String(s.last || "").trim().toLowerCase();
+  const game = String(s.game || "").trim();
   const track = String(s.track || "").trim().toLowerCase();
-  const eventId = String(s.eventId || "").trim();
-  return `${first}|${last}|${game}|${track}|${eventId}`;
+  return `${first}|${last}|${game}|${track}`;
 }
 
-// Duplicate guard: exact same fields within 60s
-function isDuplicateAttempt(candidate) {
-  const now = Date.now();
-  return attempts.some(a => {
-    const dt = Math.abs(now - new Date(a.createdAt).getTime());
-    return dt < 60_000 &&
-      a.first.toLowerCase() === candidate.first.toLowerCase() &&
-      a.last.toLowerCase() === candidate.last.toLowerCase() &&
-      a.game === candidate.game &&
-      a.track.toLowerCase() === candidate.track.toLowerCase() &&
-      a.time === candidate.time &&
-      a.eventId === candidate.eventId;
-  });
+function insertScore(row) {
+  db.prepare(`
+    INSERT INTO scores (id, first, last, time, day, game, car, track, cohort, course, createdAt)
+    VALUES (@id, @first, @last, @time, @day, @game, @car, @track, @cohort, @course, @createdAt)
+  `).run(row);
 }
 
-function broadcastCounts() {
-  const map = {};
-  for (const s of scores) map[s.eventId] = (map[s.eventId] || 0) + 1;
-  io.emit("eventCounts", map);
+function updateScore(row) {
+  db.prepare(`
+    UPDATE scores
+    SET first=@first, last=@last, time=@time, day=@day, game=@game, car=@car, track=@track, cohort=@cohort, course=@course
+    WHERE id=@id
+  `).run(row);
 }
 
-// -------------------- Core: log attempt + upsert best --------------------
+function applyRatingUpdate(row) {
+  const rating = getRatingEntry(row.game, row.first, row.last);
+  const { delta, position, fieldSize } = calculatePositionDelta(row);
+
+  rating.rating = Math.max(0, rating.rating + delta);
+  rating.lastChange = delta;
+  rating.lastResult = fieldSize ? { position, fieldSize } : null;
+  rating.updatedAt = new Date().toISOString();
+
+  saveRating(getRatingKey(row.game, row.first, row.last), rating);
+  io.emit("ratingsUpdate", ratings);
+
+  return { ratingDelta: delta, rating: rating.rating, position, fieldSize };
+}
+
+// -------------------- Core: upsert best --------------------
 function submitLap(raw) {
   const clean = sanitiseScore(raw);
   if (!clean) return { ok: false, reason: "invalid" };
 
-  // Always log attempts for student search (ALL events)
-  if (!isDuplicateAttempt(clean)) {
-    attempts.push(clean);
-    saveAttempts();
-    io.emit("attemptAdded", { attemptId: clean.attemptId });
-  }
-
   const key = makeKey(clean);
   const idx = scores.findIndex(s => makeKey(s) === key);
 
-  let ratingDelta = 0;
-
   if (idx === -1) {
-    // New driver on this track
     const row = { ...clean };
     scores.push(row);
-    
-    // Calculate initial rating
-    const ratingKey = getRatingKey(clean.game, clean.track, clean.first, clean.last);
-    const medianMs = getFieldMedianTime(clean.game, clean.track);
-    ratingDelta = calculateRatingDelta(1000, timeToMs(clean.time), timeToMs(clean.time), medianMs);
-    
-    // Initialize/update rating
-    if (!ratings[ratingKey]) {
-      ratings[ratingKey] = {
-        rating: 1000,
-        lastChange: ratingDelta,
-        updatedAt: new Date().toISOString()
-      };
-    } else {
-      ratings[ratingKey].rating += ratingDelta;
-      ratings[ratingKey].lastChange = ratingDelta;
-      ratings[ratingKey].updatedAt = new Date().toISOString();
-    }
-    
-    saveScores();
-    saveRatings();
+    insertScore(row);
     io.emit("scoreUpdate", row);
-    io.emit("ratingsUpdate", ratings);
-    broadcastCounts();
-    return { ok: true, mode: "added", ratingDelta };
+
+    const ratingInfo = applyRatingUpdate(row);
+    return { ok: true, mode: "added", ...ratingInfo };
   }
 
   const old = scores[idx];
   if (timeToMs(clean.time) < timeToMs(old.time)) {
-    const row = { ...clean, id: old.id }; // keep row id stable
+    const row = { ...clean, id: old.id };
     scores[idx] = row;
-    
-    // Calculate rating improvement
-    const ratingKey = getRatingKey(clean.game, clean.track, clean.first, clean.last);
-    const oldRating = getDriverRating(clean.game, clean.track, clean.first, clean.last);
-    const medianMs = getFieldMedianTime(clean.game, clean.track);
-    
-    ratingDelta = calculateRatingDelta(timeToMs(old.time), timeToMs(clean.time), timeToMs(clean.time), medianMs);
-    
-    if (ratings[ratingKey]) {
-      ratings[ratingKey].rating += ratingDelta;
-      ratings[ratingKey].lastChange = ratingDelta;
-      ratings[ratingKey].updatedAt = new Date().toISOString();
-    }
-    
-    saveScores();
-    saveRatings();
+    updateScore(row);
     io.emit("scoreReplace", row);
-    io.emit("ratingsUpdate", ratings);
-    broadcastCounts();
-    return { ok: true, mode: "replaced", ratingDelta };
+
+    const ratingInfo = applyRatingUpdate(row);
+    return { ok: true, mode: "replaced", ...ratingInfo };
   }
 
   return { ok: false, reason: "not_better" };
-}
-
-// -------------------- Admin: resets / deletes --------------------
-function resetEvent(eventId) {
-  const beforeScores = scores.length;
-  const beforeAttempts = attempts.length;
-
-  scores = scores.filter(s => s.eventId !== eventId);
-  attempts = attempts.filter(a => a.eventId !== eventId);
-
-  const removedScores = beforeScores - scores.length;
-  const removedAttempts = beforeAttempts - attempts.length;
-
-  saveScores();
-  saveAttempts();
-
-  io.emit("clearEvent", { eventId });
-  broadcastCounts();
-
-  return { removedScores, removedAttempts };
-}
-
-function clearAll() {
-  const removedScores = scores.length;
-  const removedAttempts = attempts.length;
-
-  scores = [];
-  attempts = [];
-
-  saveScores();
-  saveAttempts();
-
-  io.emit("clearAll");
-  broadcastCounts();
-
-  return { removedScores, removedAttempts };
-}
-
-function clearDemoData() {
-  const beforeScores = scores.length;
-  const beforeAttempts = attempts.length;
-
-  scores = scores.filter(s => !s.demo);
-  attempts = attempts.filter(a => !a.demo);
-
-  const removedScores = beforeScores - scores.length;
-  const removedAttempts = beforeAttempts - attempts.length;
-
-  saveScores();
-  saveAttempts();
-
-  io.emit("clearDemo");
-  broadcastCounts();
-
-  return { removedScores, removedAttempts };
 }
 
 function deleteLeaderboardRowById(id) {
   const before = scores.length;
   scores = scores.filter(s => s.id !== id);
   const removed = before - scores.length;
-  saveScores();
-  if (removed) io.emit("deleteScore", { id });
-  broadcastCounts();
+  if (removed) {
+    db.prepare("DELETE FROM scores WHERE id = ?").run(id);
+    io.emit("deleteScore", { id });
+  }
   return removed;
 }
 
-// -------------------- Cleanup (NEW) --------------------
-function cleanupOldData(olderThanDays, alsoScores = false) {
-  const days = Number(olderThanDays);
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+function normalizeTelemetryPayload(payload) {
+  if (!payload || typeof payload !== "object") return null;
+  const clean = { ...payload };
 
-  const beforeAttempts = attempts.length;
-  attempts = attempts.filter(a => new Date(a.createdAt).getTime() >= cutoff);
-  const removedAttempts = beforeAttempts - attempts.length;
-
-  let removedScores = undefined;
-  if (alsoScores) {
-    const beforeScores = scores.length;
-    scores = scores.filter(s => new Date(s.createdAt).getTime() >= cutoff);
-    removedScores = beforeScores - scores.length;
-    saveScores();
-    io.emit("loadScores", scores); // refresh clients
-    broadcastCounts();
+  if (typeof clean.x === "number" && typeof clean.y === "number") {
+    clean.x = Math.max(0, Math.min(1000, clean.x));
+    clean.y = Math.max(0, Math.min(560, clean.y));
   }
 
-  saveAttempts();
-  return { removedAttempts, removedScores };
+  return clean;
 }
 
-// -------------------- Demo + TV cycle --------------------
-let demoInterval = null;
-let tvCycleInterval = null;
+function startTelemetryUdp() {
+  const socket = dgram.createSocket("udp4");
 
-const demoDrivers = [
-  ["Alex", "Turner"], ["Maya", "Singh"], ["Jordan", "Evans"], ["Sam", "Walker"],
-  ["Chris", "Patel"], ["Ellie", "Jones"], ["Noah", "Reed"], ["Priya", "Shah"],
-  ["Liam", "Carter"], ["Zoe", "Bennett"], ["Owen", "Clarke"], ["Ava", "Hughes"]
-];
-const acCars = ["BMW M4 GT3","Ferrari 488 GT3","Porsche 911 GT3 R","McLaren 720S GT3","Audi R8 LMS GT3"];
-const acTracks = ["Spa-Francorchamps","Monza","Silverstone GP","Imola","Nürburgring GP"];
-const f1Cars = ["Red Bull","Ferrari","Mercedes","McLaren","Aston Martin"];
-const f1Tracks = ["Silverstone","Suzuka","Bahrain","Monza","Interlagos"];
-const cohorts = ["Staff","Y1","Y2","Y3","Guest"];
-const courses = ["Games","Computing","Animation","Esports"];
-const rand = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-function genLapTime(game) {
-  const m = 1;
-  const s = game === "Assetto Corsa" ? (10 + Math.floor(Math.random() * 50)) : (15 + Math.floor(Math.random() * 40));
-  const ms = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
-  return `${m}:${String(s).padStart(2, "0")}.${ms}`;
-}
-
-function pushDemoOne(seedEventId) {
-  const game = Math.random() < 0.5 ? "Assetto Corsa" : "F1 25";
-  const [first, last] = rand(demoDrivers);
-
-  submitLap({
-    first, last,
-    time: genLapTime(game),
-    day: new Date().toLocaleDateString("en-GB", { weekday: "short" }),
-    game,
-    car: game === "Assetto Corsa" ? rand(acCars) : rand(f1Cars),
-    track: game === "Assetto Corsa" ? rand(acTracks) : rand(f1Tracks),
-    cohort: rand(cohorts),
-    course: rand(courses),
-    eventId: seedEventId || (getLiveEvent()?.id ?? "evt_default"),
-    createdAt: new Date().toISOString(),
-    demo: true
+  socket.on("message", (msg) => {
+    try {
+      const parsed = JSON.parse(msg.toString("utf-8"));
+      const payload = normalizeTelemetryPayload(parsed);
+      if (payload) io.emit("telemetryUpdate", payload);
+    } catch (err) {
+      console.warn("Telemetry UDP parse failed:", err.message);
+    }
   });
+
+  socket.on("listening", () => {
+    const addr = socket.address();
+    console.log(`Telemetry UDP listening on ${addr.address}:${addr.port}`);
+  });
+
+  socket.bind(TELEMETRY_UDP_PORT, TELEMETRY_UDP_HOST);
 }
 
-function setDemo(enabled, rateMs = 4000, seed = false) {
-  settings.demoEnabled = !!enabled;
-  settings.demoRateMs = Number(rateMs || 4000);
-  saveSettings();
-  io.emit("settingsUpdate", getPublicSettings());
+function updateLeaderboardRow(id, patch) {
+  const idx = scores.findIndex(s => s.id === id);
+  if (idx === -1) return { ok: false, reason: "not_found" };
 
-  if (demoInterval) clearInterval(demoInterval);
-  demoInterval = null;
+  const current = scores[idx];
+  const next = {
+    ...current,
+    first: String(patch.first ?? current.first).trim(),
+    last: String(patch.last ?? current.last).trim(),
+    time: String(patch.time ?? current.time).trim(),
+    day: String(patch.day ?? current.day).trim(),
+    game: String(patch.game ?? current.game).trim(),
+    car: String(patch.car ?? current.car).trim(),
+    track: String(patch.track ?? current.track).trim(),
+    cohort: String(patch.cohort ?? current.cohort).trim() || "Guest",
+    course: String(patch.course ?? current.course).trim() || "—"
+  };
 
-  if (enabled) {
-    const targetEventId = getLiveEvent()?.id ?? "evt_default";
-    if (seed) for (let i = 0; i < 18; i++) pushDemoOne(targetEventId);
-    demoInterval = setInterval(() => pushDemoOne(targetEventId), settings.demoRateMs);
+  if (!next.first || !next.last || !next.time || !next.track || !next.game) {
+    return { ok: false, reason: "invalid" };
   }
+  if (next.game !== "Assetto Corsa") return { ok: false, reason: "invalid_game" };
+
+  const parsed = timeToMs(next.time);
+  if (!Number.isFinite(parsed)) return { ok: false, reason: "invalid_time" };
+
+  const key = makeKey(next);
+  const dupIdx = scores.findIndex(s => s.id !== id && makeKey(s) === key);
+  if (dupIdx !== -1) return { ok: false, reason: "duplicate" };
+
+  scores[idx] = next;
+  updateScore(next);
+  io.emit("scoreReplace", next);
+
+  const ratingInfo = applyRatingUpdate(next);
+  return { ok: true, row: next, ratingInfo };
 }
-
-function setTvCycle(enabled, rateMs = 15000) {
-  settings.tvCycleEnabled = !!enabled;
-  settings.tvCycleRateMs = Number(rateMs || 15000);
-  saveSettings();
-  io.emit("settingsUpdate", getPublicSettings());
-
-  if (tvCycleInterval) clearInterval(tvCycleInterval);
-  tvCycleInterval = null;
-
-  if (enabled) {
-    const cycle = ["", "Assetto Corsa", "F1 25"];
-    let idx = 0;
-    tvCycleInterval = setInterval(() => {
-      idx = (idx + 1) % cycle.length;
-      io.emit("tvCycleStep", { game: cycle[idx] });
-    }, settings.tvCycleRateMs);
-  }
-}
-
-// Restore intervals
-if (settings.demoEnabled) setDemo(true, settings.demoRateMs, false);
-if (settings.tvCycleEnabled) setTvCycle(true, settings.tvCycleRateMs);
 
 // -------------------- APIs --------------------
 app.get("/api/settings", (req, res) => res.json(getPublicSettings()));
 app.get("/api/scores", (req, res) => res.json(scores));
-app.get("/api/events", (req, res) => res.json(settings.events));
 app.get("/api/ratings", (req, res) => res.json(ratings));
-
-app.get("/api/attempts", (req, res) => {
-  const q = String(req.query.q || "").trim().toLowerCase();
-  const limit = Math.min(parseInt(req.query.limit || "250", 10), 2000);
-
-  const eventId = String(req.query.eventId || "").trim();
-  const game = String(req.query.game || "").trim();
-
-  let list = attempts;
-
-  if (eventId) list = list.filter(a => a.eventId === eventId);
-  if (game) list = list.filter(a => a.game === game);
-
-  if (q) {
-    list = list.filter(a => {
-      const hay = `${a.first} ${a.last} ${a.track} ${a.car} ${a.game} ${a.course} ${a.cohort}`.toLowerCase();
-      return hay.includes(q);
+app.get("/api/tracks", (req, res) => {
+  try {
+    const tracksDir = path.join(__dirname, "public", "tracks");
+    if (!fs.existsSync(tracksDir)) return res.json([]);
+    const files = fs.readdirSync(tracksDir).filter((f) => f.endsWith(".json"));
+    const list = files.map((file) => {
+      const id = file.replace(/\.json$/, "");
+      try {
+        const raw = fs.readFileSync(path.join(tracksDir, file), "utf-8");
+        const data = JSON.parse(raw);
+        return { id, name: data.name || id };
+      } catch {
+        return { id, name: id };
+      }
     });
+    res.json(list);
+  } catch (err) {
+    res.json([]);
   }
-
-  list = list.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json(list.slice(0, limit));
 });
 
 // -------------------- Socket.IO --------------------
@@ -557,7 +477,6 @@ io.on("connection", (socket) => {
   socket.emit("loadScores", scores);
   socket.emit("settingsUpdate", getPublicSettings());
   socket.emit("ratingsUpdate", ratings);
-  broadcastCounts();
 
   socket.on("newScore", (data) => {
     const result = submitLap(data);
@@ -568,212 +487,33 @@ io.on("connection", (socket) => {
     socket.emit("adminPingResult", { ok: isAdmin(pin) });
   });
 
-  // Settings
-  socket.on("adminUpdateSettings", ({ pin, patch }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "updateSettings", reason: "denied" });
-
-    if (typeof patch?.bestPerDriver === "boolean") settings.bestPerDriver = patch.bestPerDriver;
-
-    saveSettings();
+  socket.on("adminSetTrack", ({ pin, trackId }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "setTrack", reason: "denied" });
+    const next = String(trackId || "").trim() || "spa";
+    settings.defaultTrack = next;
+    setSetting("defaultTrack", next);
     io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "updateSettings" });
+    socket.emit("adminResult", { ok: true, action: "setTrack" });
   });
 
-  // Events
-  socket.on("adminCreateEvent", ({ pin, name }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "createEvent", reason: "denied" });
-    const evt = createEvent(name);
-    socket.emit("adminResult", { ok: true, action: "createEvent", event: evt });
-  });
-
-  socket.on("adminSetLiveEvent", ({ pin, eventId }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "setLiveEvent", reason: "denied" });
-    setLiveEvent(String(eventId || ""));
-    socket.emit("adminResult", { ok: true, action: "setLiveEvent" });
-  });
-
-  // Fullscreen pin
-  socket.on("adminSetFullscreen", ({ pin, patch }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "setFullscreen", reason: "denied" });
-
-    settings.fullscreen ||= { eventId: "evt_default", game: "", followLiveEvent: true, useTvCycle: false };
-
-    if (typeof patch?.followLiveEvent === "boolean") settings.fullscreen.followLiveEvent = patch.followLiveEvent;
-    if (typeof patch?.useTvCycle === "boolean") settings.fullscreen.useTvCycle = patch.useTvCycle;
-
-    if (typeof patch?.eventId === "string") settings.fullscreen.eventId = patch.eventId;
-    if (typeof patch?.game === "string") settings.fullscreen.game = patch.game;
-
-    if (settings.fullscreen.followLiveEvent) {
-      const live = getLiveEvent();
-      if (live?.id) settings.fullscreen.eventId = live.id;
-    }
-
-    saveSettings();
-    io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "setFullscreen" });
-  });
-
-  // Reset selected event board
-  socket.on("adminResetEventBoard", ({ pin, eventId }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "resetEventBoard", reason: "denied" });
-    const eid = String(eventId || settings.fullscreen?.eventId || getLiveEvent()?.id || "evt_default");
-    const r = resetEvent(eid);
-    socket.emit("adminResult", { ok: true, action: "resetEventBoard", ...r });
-  });
-
-  // Cleanup (NEW)
-  socket.on("adminCleanup", ({ pin, olderThanDays, alsoScores }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "cleanup", reason: "denied" });
-
-    const days = Number(olderThanDays || 90);
-    if (!Number.isFinite(days) || days <= 0) {
-      return socket.emit("adminResult", { ok: false, action: "cleanup", reason: "bad_days" });
-    }
-
-    const r = cleanupOldData(days, !!alsoScores);
-    socket.emit("adminResult", { ok: true, action: "cleanup", ...r });
-  });
-
-  // Clear everything
-  socket.on("adminClearAll", ({ pin }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "clearAll", reason: "denied" });
-    const r = clearAll();
-    socket.emit("adminResult", { ok: true, action: "clearAll", ...r });
-  });
-
-  // Demo controls
-  socket.on("adminDemo", ({ pin, enabled, seed, rateMs }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "demo", reason: "denied" });
-    setDemo(!!enabled, Number(rateMs || 4000), !!seed);
-    socket.emit("adminResult", { ok: true, action: "demo" });
-  });
-
-  socket.on("adminClearDemo", ({ pin }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "clearDemo", reason: "denied" });
-    const r = clearDemoData();
-    socket.emit("adminResult", { ok: true, action: "clearDemo", ...r });
-  });
-
-  // TV cycle
-  socket.on("adminTvCycle", ({ pin, enabled, rateMs }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "tv", reason: "denied" });
-    setTvCycle(!!enabled, Number(rateMs || 15000));
-    socket.emit("adminResult", { ok: true, action: "tv" });
-  });
-
-  // Delete one leaderboard row
   socket.on("adminDeleteScore", ({ pin, id }) => {
     if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "deleteScore", reason: "denied" });
     const removed = deleteLeaderboardRowById(String(id || ""));
     socket.emit("adminResult", { ok: true, action: "deleteScore", removed });
   });
 
-  // Lecturer mode & privacy
-  socket.on("adminLecturerMode", ({ pin, patch }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "lecturerMode", reason: "denied" });
-
-    if (typeof patch?.lecturerMode === "boolean") settings.lecturerMode = patch.lecturerMode;
-    if (typeof patch?.privacy?.nameMode === "string") {
-      settings.privacy ||= { nameMode: "FULL", hideCourse: false };
-      settings.privacy.nameMode = patch.privacy.nameMode;
+  socket.on("adminUpdateScore", ({ pin, id, ...patch }) => {
+    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "updateScore", reason: "denied" });
+    const result = updateLeaderboardRow(String(id || ""), patch || {});
+    if (!result.ok) {
+      return socket.emit("adminResult", { ok: false, action: "updateScore", reason: result.reason });
     }
-    if (typeof patch?.privacy?.hideCourse === "boolean") {
-      settings.privacy ||= { nameMode: "FULL", hideCourse: false };
-      settings.privacy.hideCourse = patch.privacy.hideCourse;
-    }
-
-    saveSettings();
-    io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "lecturerMode" });
-  });
-
-  // Auto-scroll
-  socket.on("adminAutoScroll", ({ pin, enabled, rateMs, pauseMs }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "autoScroll", reason: "denied" });
-
-    settings.autoScroll = !!enabled;
-    if (Number.isFinite(rateMs) && rateMs > 0) settings.autoScrollRateMs = rateMs;
-    if (Number.isFinite(pauseMs) && pauseMs > 0) settings.autoScrollPauseMs = pauseMs;
-
-    saveSettings();
-    io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "autoScroll" });
-  });
-
-  // Spotlight
-  socket.on("adminSpotlight", ({ pin, enabled, rateMs, mode }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "spotlight", reason: "denied" });
-
-    settings.spotlight = !!enabled;
-    if (Number.isFinite(rateMs) && rateMs > 0) settings.spotlightRateMs = rateMs;
-    if (["recent", "random", "improved"].includes(mode)) settings.spotlightMode = mode;
-
-    saveSettings();
-    io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "spotlight" });
-  });
-
-  // Presets
-  socket.on("adminPreset", ({ pin, preset }) => {
-    if (!isAdmin(pin)) return socket.emit("adminResult", { ok: false, action: "preset", reason: "denied" });
-
-    const PRESETS = {
-      openDay: {
-        lecturerMode: true,
-        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
-        autoScroll: true,
-        spotlight: true,
-        demoEnabled: false
-      },
-      tournament: {
-        lecturerMode: false,
-        privacy: { nameMode: "FULL", hideCourse: false },
-        autoScroll: true,
-        spotlight: false,
-        demoEnabled: false
-      },
-      teaching: {
-        lecturerMode: true,
-        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
-        autoScroll: false,
-        spotlight: true,
-        demoEnabled: false
-      },
-      marketing: {
-        lecturerMode: true,
-        privacy: { nameMode: "FIRST_INITIAL", hideCourse: false },
-        autoScroll: true,
-        spotlight: true,
-        demoEnabled: true
-      }
-    };
-
-    const presetConfig = PRESETS[preset];
-    if (!presetConfig) {
-      return socket.emit("adminResult", { ok: false, action: "preset", reason: "invalid_preset" });
-    }
-
-    // Apply preset
-    if (typeof presetConfig.lecturerMode === "boolean") settings.lecturerMode = presetConfig.lecturerMode;
-    if (presetConfig.privacy) {
-      settings.privacy = { ...settings.privacy, ...presetConfig.privacy };
-    }
-    if (typeof presetConfig.autoScroll === "boolean") settings.autoScroll = presetConfig.autoScroll;
-    if (typeof presetConfig.spotlight === "boolean") settings.spotlight = presetConfig.spotlight;
-    if (typeof presetConfig.demoEnabled === "boolean") {
-      if (presetConfig.demoEnabled && !settings.demoEnabled) {
-        setDemo(true, settings.demoRateMs, true);
-      } else if (!presetConfig.demoEnabled && settings.demoEnabled) {
-        setDemo(false);
-      }
-    }
-
-    saveSettings();
-    io.emit("settingsUpdate", getPublicSettings());
-    socket.emit("adminResult", { ok: true, action: "preset", preset });
+    socket.emit("adminResult", { ok: true, action: "updateScore" });
   });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running: http://localhost:${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running: http://localhost:${PORT}`);
+  startTelemetryUdp();
+});
