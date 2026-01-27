@@ -9,21 +9,21 @@
     {
       "id": "evt_default",
       "name": "General Leaderboard",
-      "isLive": false,
+      "isLive": true,
       "createdAt": "2026-01-09T09:08:10.838Z"
     },
     {
       "id": "evt_demo",
       "name": "Demo Data",
-      "isLive": true,
+      "isLive": false,
       "createdAt": "2026-01-09T09:12:57.763Z"
     }
   ],
   "fullscreen": {
-    "eventId": "evt_demo",
+    "eventId": "evt_default",
     "game": "Assetto Corsa",
     "useTvCycle": false,
-    "followLiveEvent": false
+    "followLiveEvent": true
   },
   "lecturerMode": true,
   "privacy": {
@@ -33,7 +33,13 @@
   "autoScroll": true,
   "autoScrollRateMs": 15000,
   "autoScrollPauseMs": 2000,
-  "spotlight": false,
+  "spotlight": true,
   "spotlightRateMs": 10000,
-  "spotlightMode": "improved"
+  "spotlightMode": "improved",
+  "rig": {
+    "enabled": false,
+    "timedLaps": 3,
+    "outLaps": 1,
+    "key": "rig-secret"
+  }
 }
